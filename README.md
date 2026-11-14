@@ -35,11 +35,11 @@ Download `manifest.json`, `main.js` and `styles.css` from the latest release int
 | --- | --- | --- |
 | Open dashboard at startup | on | Auto-opens the dashboard when Obsidian starts |
 | --- | --- | --- |
-| Journal folder | `open code/Journal` | Where `YYYY-MM-DD.md` daily notes live |
-| Inbox folder | `open code/Inbox` | Where quick captures are stored |
-| Meetings folder | `open code/Meetings` | Where new meetings are created |
-| Hero video path | `open code/assets/…mp4` | Video behind the hero (empty → gradient) |
-| Poster (desktop / mobile) | `open code/assets/img/…` | Fallback image when there is no video |
+| Journal folder | `Journal` | Where `YYYY-MM-DD.md` daily notes live |
+| Inbox folder | `Inbox` | Where quick captures are stored |
+| Meetings folder | `Meetings` | Where new meetings are created |
+| Hero video path | *(empty)* | Video behind the hero (empty → gradient) |
+| Poster (desktop / mobile) | *(empty)* | Fallback image when there is no video |
 | Max tasks shown | `18` | Cap for the Tasks today card |
 | Auto refresh | `60` s | Background refresh interval (0 = off) |
 
