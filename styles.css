@@ -455,6 +455,37 @@
   overflow-y: auto;
   padding-right: 4px;
 }
+
+/* ── New meeting form modal ─────────────────────────────────── */
+.hd-form { display: flex; flex-direction: column; gap: 12px; }
+.hd-form-row { display: flex; flex-direction: column; gap: 5px; }
+.hd-form-row label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #8d7fb8;
+}
+.hd-form-inline { flex-direction: row; gap: 14px; }
+.hd-form-inline > div { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.hd-form .hd-input {
+  background: rgba(20, 11, 38, 0.55);
+  border: 1px solid rgba(177, 140, 255, 0.25);
+  border-radius: 9px;
+  color: #e0d4f8;
+  padding: 7px 10px;
+  font-size: 13.5px;
+}
+.hd-form .hd-input:focus {
+  border-color: rgba(177, 140, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(155, 92, 255, 0.25);
+}
+.hd-form textarea.hd-input {
+  resize: vertical;
+  min-height: 58px;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.45;
+}
+.hd-form-btns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 2px; }
 .hd-task .hd-task-text {
   flex: 1 1 auto;
   min-width: 0;
