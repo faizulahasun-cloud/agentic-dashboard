@@ -7,6 +7,7 @@ const {
   Setting,
   ItemView,
   Notice,
+  Modal,
   TFile,
   TFolder,
   Platform,
@@ -147,7 +148,11 @@ class HermesDashboardView extends ItemView {
       meetingCount: 0,
       recent: [],
       inbox: [],
+      inboxAll: [],     // every inbox note (for the at-a-glance reveal)
       inboxCount: 0,
+      tasksAll: [],     // every open due task (for the at-a-glance reveal)
+      doneList: [],     // done tasks (for the at-a-glance reveal)
+      modified: [],     // files modified in the last 7 days (for the reveal)
     };
 
     const inboxFolder = app.vault.getAbstractFileByPath(s.inboxFolder);
@@ -166,7 +171,7 @@ class HermesDashboardView extends ItemView {
     const recentFiles = [];
 
     for (const f of files) {
-      if (f.stat.mtime >= weekAgo) data.modifiedCount++;
+      if (f.stat.mtime >= weekAgo) { data.modifiedCount++; data.modified.push({ path: f.path, title: f.basename, mtime: f.stat.mtime }); }
       if (inInbox(f)) inboxFiles.push(f);
       recentFiles.push(f);
 
@@ -182,22 +187,26 @@ class HermesDashboardView extends ItemView {
           if (!m) continue;
           const isDone = m[2] !== ' ';
           const raw = m[3];
-          if (isDone) { data.doneCount++; continue; }
+          if (isDone) { data.doneCount++; data.doneList.push({ path: f.path, base: f.basename, raw }); continue; }
           data.openCount++;
 
-          if (f.path === dailyPath) {
+          const daily = f.path === dailyPath;
+          const due = daily ? null : dueDateOf(line);
+          data.tasksAll.push({
+            path: f.path, line, raw, due, daily, done: false,
+            base: f.basename,
+          });
+
+          if (daily) {
             data.todayTasks.push({
               path: f.path, line, raw, due: null, done: false,
               base: f.basename,
             });
-          } else {
-            const due = dueDateOf(line);
-            if (due && due <= today) {
-              data.dueTasks.push({
-                path: f.path, line, raw, due, done: false,
-                base: f.basename,
-              });
-            }
+          } else if (due && due <= today) {
+            data.dueTasks.push({
+              path: f.path, line, raw, due, done: false,
+              base: f.basename,
+            });
           }
         }
       }
@@ -235,11 +244,24 @@ class HermesDashboardView extends ItemView {
     data.todayTasks = null; // merged above
     data.dueTasks = null;
 
+    // at-a-glance "open" reveal: every open task, dated/overdue first
+    const rank = (t) => (t.due && t.due <= today) ? 0 : (t.daily ? 1 : 2);
+    data.tasksAll.sort((a, b) => {
+      const ra = rank(a), rb = rank(b);
+      if (ra !== rb) return ra - rb;
+      const da = a.due || '9999-99-99', db = b.due || '9999-99-99';
+      if (da !== db) return da < db ? -1 : 1;
+      return a.raw.localeCompare(b.raw);
+    });
+
     // meetings: sort by time
     data.meetings.sort((a, b) => String(a.time || '').localeCompare(String(b.time || '')));
     if (meetingsIsFolder) {
       data.meetingCount = files.filter((f) => inMeetings(f) && f.stat.ctime).length;
     }
+
+    // modified: newest first
+    data.modified.sort((a, b) => b.mtime - a.mtime);
 
     // recent notes: 7 by mtime, skip today's daily duplicates of the same list
     recentFiles.sort((a, b) => b.stat.mtime - a.stat.mtime);
@@ -249,17 +271,15 @@ class HermesDashboardView extends ItemView {
       mtime: f.stat.mtime,
     }));
 
-    // inbox: 10 by ctime + total count
+    // inbox: card shows 10 by ctime, reveal lists everything
     inboxFiles.sort((a, b) => b.stat.ctime - a.stat.ctime);
     data.inboxCount = inboxFiles.length;
-    data.inbox = inboxFiles.slice(0, 10).map((f) => {
-      const cache = app.metadataCache.getFileCache(f);
-      let tag = '';
-      if (cache && cache.frontmatter && typeof cache.frontmatter.tag === 'string') {
-        tag = cache.frontmatter.tag;
-      }
-      return { path: f.path, title: f.basename, ctime: f.stat.ctime, tag };
-    });
+    const tagOf = (f) => {
+      const c = app.metadataCache.getFileCache(f);
+      return c && c.frontmatter && typeof c.frontmatter.tag === 'string' ? c.frontmatter.tag : '';
+    };
+    data.inboxAll = inboxFiles.map((f) => ({ path: f.path, title: f.basename, ctime: f.stat.ctime, tag: tagOf(f) }));
+    data.inbox = data.inboxAll.slice(0, 10);
 
     // calendar: which dates in journal folder have notes
     this._calendarNotes = new Set();
@@ -563,19 +583,68 @@ class HermesDashboardView extends ItemView {
     card.createEl('h3', { text: 'At a glance' });
     const stats = card.createDiv({ cls: 'hd-stats' });
     const items = [
-      { ico: '📝', num: `${data.noteCount}`, lbl: 'notes' },
-      { ico: '☐', num: `${data.openCount}`, lbl: 'open' },
-      { ico: '☑', num: `${data.doneCount}`, lbl: 'done' },
-      { ico: '📥', num: `${data.inboxCount}`, lbl: 'inbox' },
-      { ico: '🗓', num: `${data.meetings.length}`, lbl: 'meetings' },
-      { ico: '⏱', num: `${data.modifiedCount}`, lbl: 'mod 7d' },
+      {
+        ico: '📝', num: `${data.noteCount}`, lbl: 'notes',
+        reveal: () => this.revealFileExplorer(),
+      },
+      {
+        ico: '☐', num: `${data.openCount}`, lbl: 'open',
+        reveal: () => this.showListModal('Open tasks', data.tasksAll.map((t) => ({
+          when: t.due ? t.due.slice(5).replace('-', ' ') : (t.daily ? 'today' : '—'),
+          title: cleanTaskText(t.raw),
+          path: t.path,
+        }))),
+      },
+      {
+        ico: '☑', num: `${data.doneCount}`, lbl: 'done',
+        reveal: () => this.showListModal('Completed tasks', data.doneList.map((t) => ({
+          when: t.base,
+          title: cleanTaskText(t.raw),
+          path: t.path,
+        }))),
+      },
+      {
+        ico: '📥', num: `${data.inboxCount}`, lbl: 'inbox',
+        reveal: () => this.showListModal('Inbox', data.inboxAll.map((n) => ({
+          when: n.tag ? `#${n.tag}` : '#',
+          title: n.title,
+          path: n.path,
+        }))),
+      },
+      {
+        ico: '🗓', num: `${data.meetings.length}`, lbl: 'meetings',
+        reveal: () => this.showListModal('Meetings today', data.meetings.map((m) => ({
+          when: m.time ? m.time.slice(0, 5) : '—',
+          title: m.title,
+          path: m.path,
+        }))),
+      },
+      {
+        ico: '⏱', num: `${data.modifiedCount}`, lbl: 'mod 7d',
+        reveal: () => this.showListModal('Modified in the last 7 days', data.modified.map((r) => ({
+          when: fromNow(r.mtime),
+          title: r.title,
+          path: r.path,
+        }))),
+      },
     ];
     for (const it of items) {
-      const st = stats.createDiv({ cls: 'hd-stat' });
+      const st = stats.createDiv({ cls: 'hd-stat click' });
       st.createSpan({ cls: 'hd-ico', text: it.ico });
       st.createDiv({ cls: 'hd-num', text: it.num });
       st.createDiv({ cls: 'hd-lbl', text: it.lbl });
+      st.addEventListener('click', () => it.reveal());
     }
+  }
+
+  revealFileExplorer() {
+    const leaf = this.app.workspace.getLeavesOfType('file-explorer')[0];
+    if (leaf) this.app.workspace.revealLeaf(leaf);
+    else new Notice('Agentic dashboard: file explorer not available');
+  }
+
+  showListModal(title, rows) {
+    new HdListModal(this.app, title, rows).open();
   }
 
   renderMeetingsCard(grid, data) {
@@ -661,6 +730,56 @@ class HermesDashboardView extends ItemView {
   async openDaily(dateStr) {
     const target = dateStr || ymd(new Date());
     await this.plugin.openOrCreateDaily(target);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ✦ At-a-glance reveal modal
+   ════════════════════════════════════════════════════════════════ */
+
+const HD_MODAL_LIST_CAP = 100;
+
+class HdListModal extends Modal {
+  constructor(app, title, rows) {
+    super(app);
+    this.modalTitle = title;
+    this.rows = rows || [];
+  }
+
+  onOpen() {
+    this.titleEl.setText(this.modalTitle);
+    this.modalEl.addClass('hd-modal');
+    const list = this.contentEl.createDiv({ cls: 'hd-list hd-modal-list' });
+    if (!this.rows.length) {
+      list.createDiv({ cls: 'hd-empty-ok', text: 'Nothing here ✓' });
+      return;
+    }
+    let shown = 0;
+    for (const r of this.rows) {
+      if (shown >= HD_MODAL_LIST_CAP) {
+        list.createDiv({ cls: 'hd-empty', text: `+ ${this.rows.length - shown} more` });
+        break;
+      }
+      shown++;
+      const item = list.createDiv({ cls: 'hd-item' });
+      item.createSpan({ cls: 'hd-when', text: r.when || '' });
+      const open = item.createSpan({ cls: 'hd-open', text: r.title });
+      open.addEventListener('click', () => {
+        this.close();
+        this.openRow(r);
+      });
+    }
+  }
+
+  async openRow(r) {
+    const f = this.app.vault.getAbstractFileByPath(r.path);
+    if (f instanceof TFile) {
+      await this.app.workspace.getLeaf('tab').openFile(f);
+    }
+  }
+
+  onClose() {
+    this.contentEl.empty();
   }
 }
 
