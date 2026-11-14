@@ -45,6 +45,16 @@ Download `manifest.json`, `main.js` and `styles.css` from the latest release int
 
 Point the three folder settings at any folders in your vault and the dashboard adapts to your layout. Daily notes, meetings and captures are created with sensible frontmatter (`type`, `date`, `time`, `tag`) so they stay Dataview-friendly.
 
+### Hero video (optional)
+
+The hero banner shows a calm gradient out of the box — no extra files needed. To enable the animated crystal video hero:
+
+1. Download `hermes_obsidian_animated_profile_with_long_crystal_tone.mp4` (~1 MB) from the [latest release](https://github.com/faizulahasun-cloud/agentic-dashboard/releases/latest) — it ships as a separate asset, next to the plugin files
+2. Put it anywhere in your vault (e.g. an `assets/` folder)
+3. Set **Hero video path** in the plugin settings to that vault-relative path (e.g. `assets/hermes_obsidian_animated_profile_with_long_crystal_tone.mp4`)
+
+Optional poster images (shown instead of the video when a device can't play it) work the same way: add them to the vault and point **Poster (desktop)** / **Poster (mobile)** at them. Skip all of this and you simply get the gradient.
+
 ## Agent & automation actions
 
 Any agent, script or shortcut can drive the vault — no extra plugin or server needed. Two native channels are built in:
