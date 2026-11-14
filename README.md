@@ -10,8 +10,8 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 - ＋ **Quick capture** — send thoughts, ideas, reflections, books, articles to your Inbox folder with one Enter press; chips pick the note type
 - **Tasks today** — open tasks from today's daily note plus every task across the vault that is due today or overdue (📅 / ⏳ / 🛫 emoji dates), click to toggle done
 - **Calendar** — Monday-start month view, dots on days with a daily note, click any day to open/create that daily note
-- **At a glance** — notes, open tasks, done tasks, inbox count, today's meetings, files modified in the last 7 days
-- **Meetings today** — notes in the meetings folder whose frontmatter `date` is today
+- **Meetings today** — notes in the meetings folder whose frontmatter `date` is today; the **Meeting** button opens a full form (name, date, time, agenda, notes, decisions, action items) that builds the complete meeting note
+- **At a glance reveals** — every stat tile is clickable: open and completed tasks, inbox notes, today's meetings and recently modified files each open a clickable list; the notes stat opens the file explorer
 - **Recent notes** — 7 most recently modified notes
 - **Inbox** — 10 newest captures with their type tag
 - **Auto-refresh** — the dashboard updates when your vault changes
@@ -69,7 +69,7 @@ Requires the Obsidian CLI to be enabled (**Settings → General → Command line
 | `obsidian agentic-dashboard:add-task text="Call plumber"` | Appends `- [ ] Call plumber` to today's daily note (creates it if missing) |
 | `obsidian agentic-dashboard:add-task text="Call plumber" date=2026-11-14` | Adds to that day's daily note |
 | `obsidian agentic-dashboard:capture text="Read X" type=idea` | Creates an Inbox note (type: thought/idea/reflection/to-watch/book/article) |
-| `obsidian agentic-dashboard:meeting title="Design review" time=14:30` | Creates a meeting note (time optional) |
+| `obsidian agentic-dashboard:meeting title="Design review" date=2026-11-20 time=14:30` | Creates a meeting note (date/time/agenda/notes/decisions/actions all optional) |
 | `obsidian agentic-dashboard:new-daily date=2026-11-14` | Creates (if missing) and opens that daily note |
 | `obsidian agentic-dashboard:open-note path="folder/note.md"` | Opens that exact vault path |
 | `obsidian agentic-dashboard:find-note query=dashboard` | Best-match search over note names, opens the winner |
@@ -89,7 +89,7 @@ The plugin registers `obsidian://agentic-dashboard?action=...` — useful for li
 | Add task | `...?action=add-task&text=Call plumber` | Appends to today's daily note |
 | Add task on a date | `...?action=add-task&text=Call plumber&date=2026-11-14` | Adds to that day's daily note |
 | Capture to inbox | `...?action=capture&text=Read X&type=idea` | Creates an Inbox note |
-| New meeting | `...?action=meeting&title=Design review&time=14:30` | Creates a meeting note |
+| New meeting | `...?action=meeting&title=Design review&date=2026-11-20&time=14:30` | Creates a meeting note |
 | Daily note | `...?action=new-daily` (`&date=` optional) | Creates if missing and opens it |
 | Open a note | `...?action=open-note&path=open code/Journal/2026-11-13.md` | Opens that exact vault path |
 | Find a note | `...?action=find-note&query=dashboard` | Best-match search, opens the winner |
