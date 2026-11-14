@@ -105,7 +105,7 @@ class HermesDashboardView extends ItemView {
     this.plugin = plugin;
     this.settings = plugin.settings;
     this.calOffset = 0;      // months away from the current month
-    this.captureMode = null; // null | '__task' | '__meeting' | capture slug
+    this.captureMode = null; // null | '__task' | capture slug
     this.activeChip = null;  // slug when plain capture is active
     this._calendarNotes = new Set();
   }
@@ -363,10 +363,7 @@ class HermesDashboardView extends ItemView {
 
     const meetBtn = actions.createEl('button', { cls: 'hd-btn', text: 'Meeting' });
     meetBtn.addEventListener('click', () => {
-      this.captureMode = '__meeting';
-      this.activeChip = null;
-      this.refreshCaptureUI();
-      this.focusInput();
+      this.plugin.openMeetingModal();
     });
   }
 
@@ -390,7 +387,7 @@ class HermesDashboardView extends ItemView {
       const chip = chips.createEl('button', { cls: 'hd-chip', text: t.label });
       chip.addEventListener('click', () => {
         // clicking a chip selects it as the capture type (plain capture mode)
-        if (this.captureMode !== '__task' && this.captureMode !== '__meeting') {
+        if (this.captureMode !== '__task') {
           this.activeChip = this.activeChip === t.slug ? null : t.slug;
         } else {
           this.activeChip = t.slug;
@@ -406,7 +403,6 @@ class HermesDashboardView extends ItemView {
     if (!this.input) return;
     let placeholder = 'Capture a thought to Inbox… (Enter to save, Esc to clear)';
     if (this.captureMode === '__task') placeholder = 'Add task to today…';
-    else if (this.captureMode === '__meeting') placeholder = 'New meeting title…';
     else if (this.activeChip) {
       const t = CAPTURE_TYPES.find((x) => x.slug === this.activeChip);
       if (t) placeholder = `Capture ${t.label.replace(/\s\S+$/, '')} to Inbox…`;
@@ -438,9 +434,6 @@ class HermesDashboardView extends ItemView {
       if (this.captureMode === '__task') {
         await this.plugin.addTaskToDaily(raw);
         new Notice('Task added to today ✓');
-      } else if (this.captureMode === '__meeting') {
-        await this.plugin.createMeeting(raw);
-        new Notice('Meeting created ✓');
       } else {
         const type = this.activeChip
           ? (CAPTURE_TYPES.find((x) => x.slug === this.activeChip) || { slug: 'thought' }).slug
@@ -784,6 +777,91 @@ class HdListModal extends Modal {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   ✦ New meeting form modal
+   ════════════════════════════════════════════════════════════════ */
+
+class HdMeetingModal extends Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+
+  onOpen() {
+    this.titleEl.setText('New meeting');
+    this.modalEl.addClass('hd-modal');
+    const form = this.contentEl.createDiv({ cls: 'hd-form' });
+
+    const nameRow = form.createDiv({ cls: 'hd-form-row' });
+    nameRow.createEl('label', { text: 'Meeting name' });
+    const name = nameRow.createEl('input', {
+      cls: 'hd-input',
+      attr: { type: 'text', placeholder: 'Design review' },
+    });
+
+    const dtRow = form.createDiv({ cls: 'hd-form-row hd-form-inline' });
+    const dwrap = dtRow.createDiv();
+    dwrap.createEl('label', { text: 'Date' });
+    const date = dwrap.createEl('input', {
+      cls: 'hd-input',
+      attr: { type: 'date', value: ymd(new Date()) },
+    });
+    const twrap = dtRow.createDiv();
+    twrap.createEl('label', { text: 'Time' });
+    const now = new Date();
+    const time = twrap.createEl('input', {
+      cls: 'hd-input',
+      attr: { type: 'time', value: `${pad2(now.getHours())}:${pad2(now.getMinutes())}` },
+    });
+
+    const area = (label, placeholder, rows) => {
+      const row = form.createDiv({ cls: 'hd-form-row' });
+      row.createEl('label', { text: label });
+      return row.createEl('textarea', {
+        cls: 'hd-input hd-textarea',
+        attr: { rows, placeholder },
+      });
+    };
+    const agenda = area('Agenda', 'One point per line…', 3);
+    const notes = area('Notes', 'Live notes during the meeting…', 3);
+    const decisions = area('Decisions', 'What was decided…', 2);
+    const actions = area('Action items', 'One task per line — saved as checkboxes…', 2);
+
+    const btnRow = form.createDiv({ cls: 'hd-form-btns' });
+    const cancel = btnRow.createEl('button', { text: 'Cancel' });
+    const create = btnRow.createEl('button', { cls: 'mod-cta', text: 'Create meeting' });
+
+    cancel.addEventListener('click', () => this.close());
+    create.addEventListener('click', async () => {
+      const title = name.value.trim();
+      if (!title) { name.focus(); return; }
+      try {
+        await this.plugin.createMeeting(title, time.value, {
+          date: date.value,
+          agenda: agenda.value,
+          notes: notes.value,
+          decisions: decisions.value,
+          actions: actions.value,
+        });
+        new Notice('Meeting created ✓');
+        this.close();
+        this.plugin.refreshViews(400);
+      } catch (e) {
+        console.error('[agentic-dashboard] meeting creation failed', e);
+        new Notice('Agentic dashboard: could not create meeting');
+      }
+    });
+    name.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Enter') { evt.preventDefault(); create.click(); }
+    });
+    name.focus();
+  }
+
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
    ✦ Settings tab
    ════════════════════════════════════════════════════════════════ */
 
@@ -1069,13 +1147,24 @@ class HermesDashboardPlugin extends Plugin {
       return `Saved to Inbox (${type}): ${text}`;
     });
 
-    reg('agentic-dashboard:meeting', 'Create a meeting note for today', {
+    reg('agentic-dashboard:meeting', 'Create a meeting note', {
       title: flag('Meeting title', '<title>', true),
+      date: flag('Meeting date (YYYY-MM-DD, default today)', '<date>'),
       time: flag('Start time (HH:mm or HHmm)', '<time>'),
+      agenda: flag('Agenda points, one per line (\\n separated)', '<text>'),
+      notes: flag('Notes, one bullet per line (\\n separated)', '<text>'),
+      decisions: flag('Decisions, one bullet per line (\\n separated)', '<text>'),
+      actions: flag('Action items, one task per line (\\n separated)', '<text>'),
     }, async (f) => {
       const title = String(f.title || '').trim();
       if (!title) return 'error: title=<meeting title> is required';
-      await this.createMeeting(title, f.time);
+      await this.createMeeting(title, f.time, {
+        date: f.date,
+        agenda: f.agenda,
+        notes: f.notes,
+        decisions: f.decisions,
+        actions: f.actions,
+      });
       this.refreshViews(400);
       return `Meeting created: ${title}`;
     });
@@ -1142,8 +1231,14 @@ class HermesDashboardPlugin extends Plugin {
           return;
         }
         case 'meeting': {
-          if (!title) return this.agentHelp('meeting', 'title=Design review (&time=HH:mm optional)');
-          await this.createMeeting(title, params.time);
+          if (!title) return this.agentHelp('meeting', 'title=Design review (&date=YYYY-MM-DD &time=HH:mm &agenda=… optional)');
+          await this.createMeeting(title, params.time, {
+            date: params.date,
+            agenda: params.agenda,
+            notes: params.notes,
+            decisions: params.decisions,
+            actions: params.actions,
+          });
           new Notice('Meeting created ✓');
           this.refreshViews(400);
           return;
@@ -1283,9 +1378,14 @@ class HermesDashboardPlugin extends Plugin {
     new Notice('Task updated ✓');
   }
 
-  async createMeeting(title, timeOpt) {
+  openMeetingModal() {
+    new HdMeetingModal(this.app, this).open();
+  }
+
+  async createMeeting(title, timeOpt, opts) {
+    const o = opts || {};
     const now = new Date();
-    const dateStr = ymd(now);
+    const dateStr = this.normalizeDate(o.date);
     const timeStr = this.normalizeTime(timeOpt, now);
     const name = sanitizeName(title) || 'Meeting';
     const folder = this.settings.meetingsFolder;
@@ -1293,6 +1393,14 @@ class HermesDashboardPlugin extends Plugin {
       await this.app.vault.createFolder(folder);
     }
     const path = `${folder}/${dateStr} ${timeStr} - ${name}.md`;
+    const listBlock = (v) => {
+      const lines = String(v || '').split(/\r?\n|\\n/).map((x) => x.trim()).filter(Boolean);
+      return lines.length ? lines.map((x) => `- ${x}`).join('\n') : '- ';
+    };
+    const actionsBlock = () => {
+      const lines = String(o.actions || '').split(/\r?\n|\\n/).map((x) => x.trim()).filter(Boolean);
+      return lines.length ? lines.map((x) => `- [ ] ${x} 📅 ${dateStr}`).join('\n') : `- [ ]  📅 ${dateStr}`;
+    };
     const content = [
       '---',
       'type: meeting',
@@ -1304,19 +1412,19 @@ class HermesDashboardPlugin extends Plugin {
       '',
       '## Agenda',
       '',
-      '- ',
+      listBlock(o.agenda),
       '',
       '## Notes',
       '',
-      '- ',
+      listBlock(o.notes),
       '',
       '## Decisions',
       '',
-      '- ',
+      listBlock(o.decisions),
       '',
       '## Action items',
       '',
-      `- [ ]  📅 ${dateStr}`,
+      actionsBlock(),
       '',
     ].join('\n');
     await this.app.vault.create(path, content);
