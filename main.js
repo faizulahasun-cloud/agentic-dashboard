@@ -21,12 +21,12 @@ const VIEW_TYPE_HERMES_DASHBOARD = 'agentic-dashboard-view';
 
 const DEFAULT_SETTINGS = {
   openOnStartup: true,
-  journalFolder: 'open code/Journal',
-  inboxFolder: 'open code/Inbox',
-  meetingsFolder: 'open code/Meetings',
-  videoPath: 'open code/assets/hermes_obsidian_animated_profile_with_long_crystal_tone.mp4',
-  posterPath: 'open code/assets/img/crystal-pc.jpg',
-  posterPhonePath: 'open code/assets/img/crystal-phone.png',
+  journalFolder: 'Journal',
+  inboxFolder: 'Inbox',
+  meetingsFolder: 'Meetings',
+  videoPath: '',
+  posterPath: '',
+  posterPhonePath: '',
   tasksCap: 18,
   refreshSeconds: 60,
 };
