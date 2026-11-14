@@ -93,6 +93,10 @@ Agents can also just write notes directly (plain file edits) — the dashboard l
 
 Requires Obsidian **1.4.0+**. Works on desktop and mobile. Themes (like [Hermes Crystal](https://github.com/faizulahasun-cloud/hermes-crystal)) style it automatically; without a theme it uses its own built-in crystal-glass dark look.
 
+## Companion theme: Hermes Crystal
+
+The theme this dashboard was designed around is also a community theme: [Hermes Crystal](https://github.com/faizulahasun-cloud/hermes-crystal) — amethyst crystal-glass styling with a nebula background, matching the dashboard's look. It's optional: the dashboard ships with its own built-in crystal-glass dark look and works with any theme.
+
 ## License
 
 [MIT](LICENSE) © 2026 Hermes
