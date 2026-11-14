@@ -110,7 +110,7 @@ class HermesDashboardView extends ItemView {
   }
 
   getViewType() { return VIEW_TYPE_HERMES_DASHBOARD; }
-  getDisplayText() { return 'Agentic Dashboard'; }
+  getDisplayText() { return 'Agentic dashboard'; }
   getIcon() { return 'sparkles'; }
 
   async onOpen() {
@@ -426,13 +426,13 @@ class HermesDashboardView extends ItemView {
           ? (CAPTURE_TYPES.find((x) => x.slug === this.activeChip) || { slug: 'thought' }).slug
           : 'thought';
         await this.plugin.captureToInbox(type, raw);
-        new Notice('Saved to Inbox ✓');
+        new Notice('Saved to inbox ✓');
       }
       this.resetCapture();
       this.plugin.requestRefresh(450);
     } catch (e) {
       console.error('[agentic-dashboard] capture failed', e);
-      new Notice('Agentic Dashboard: could not save (see console)');
+      new Notice('Agentic dashboard: could not save (see console)');
     }
   }
 
@@ -488,7 +488,7 @@ class HermesDashboardView extends ItemView {
           this.plugin.requestRefresh(250);
         } catch (e) {
           console.error('[agentic-dashboard] toggle failed', e);
-          new Notice('Agentic Dashboard: could not toggle task');
+          new Notice('Agentic dashboard: could not toggle task');
         }
       };
       row.addEventListener('click', toggle);
@@ -630,7 +630,7 @@ class HermesDashboardView extends ItemView {
   renderFooter() {
     this.root.createDiv({
       cls: 'hd-foot',
-      text: '✦ Agentic Dashboard · quick capture, tasks & calendar',
+      text: '✦ Agentic dashboard · quick capture, tasks & calendar',
     });
   }
 
@@ -674,10 +674,65 @@ class HermesDashboardSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
+  getSettingDefinitions() {
+    const D = DEFAULT_SETTINGS;
+    return [
+      {
+        name: 'Open dashboard at startup',
+        desc: 'Automatically open the dashboard when the app starts.',
+        control: { type: 'toggle', key: 'openOnStartup', defaultValue: D.openOnStartup },
+      },
+      {
+        type: 'group',
+        heading: 'Folders',
+        items: [
+          { name: 'Journal folder', desc: 'Folder holding YYYY-MM-DD daily notes.', control: { type: 'folder', key: 'journalFolder', defaultValue: D.journalFolder } },
+          { name: 'Inbox folder', desc: 'Folder where quick captures are stored.', control: { type: 'folder', key: 'inboxFolder', defaultValue: D.inboxFolder } },
+          { name: 'Meetings folder', desc: 'Folder where new meetings are created.', control: { type: 'folder', key: 'meetingsFolder', defaultValue: D.meetingsFolder } },
+        ],
+      },
+      {
+        type: 'group',
+        heading: 'Media',
+        items: [
+          { name: 'Hero video path', desc: 'Vault-relative video for the hero banner (leave empty for gradient).', control: { type: 'file', key: 'videoPath', defaultValue: D.videoPath } },
+          { name: 'Poster image (desktop)', desc: 'Vault-relative fallback image shown when there is no video.', control: { type: 'file', key: 'posterPath', defaultValue: D.posterPath } },
+          { name: 'Poster image (mobile)', desc: 'Vault-relative fallback image for phones.', control: { type: 'file', key: 'posterPhonePath', defaultValue: D.posterPhonePath } },
+        ],
+      },
+      {
+        name: 'Max tasks shown',
+        desc: 'Cap for the tasks today card.',
+        control: { type: 'number', key: 'tasksCap', defaultValue: D.tasksCap, min: 1, max: 100 },
+      },
+      {
+        name: 'Auto refresh (seconds)',
+        desc: 'How often dashboard data refreshes (0 disables).',
+        control: { type: 'number', key: 'refreshSeconds', defaultValue: D.refreshSeconds, min: 0, max: 3600 },
+      },
+    ];
+  }
+
+  getControlValue(key) {
+    return this.plugin.settings[key];
+  }
+
+  async setControlValue(key, value) {
+    if (key === 'tasksCap' || key === 'refreshSeconds') {
+      const n = parseInt(value, 10);
+      if (isNaN(n) || n < 0) return;
+      this.plugin.settings[key] = n;
+    } else if (typeof value === 'string') {
+      this.plugin.settings[key] = value.trim();
+    } else {
+      this.plugin.settings[key] = value;
+    }
+    await this.plugin.saveSettings();
+  }
+
   display() {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl('h2', { text: 'Agentic Dashboard' });
 
     new Setting(containerEl)
       .setName('Open dashboard at startup')
@@ -723,7 +778,7 @@ class HermesDashboardSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName('Max tasks shown')
-      .setDesc('Cap for the Tasks today card.')
+      .setDesc('Cap for the tasks today card.')
       .addText((t) => t.setValue(String(this.plugin.settings.tasksCap))
         .onChange(async (v) => {
           const n = parseInt(v, 10);
@@ -751,10 +806,10 @@ class HermesDashboardPlugin extends Plugin {
 
     this.registerView(VIEW_TYPE_HERMES_DASHBOARD, (leaf) => new HermesDashboardView(leaf, this));
 
-    this.addRibbonIcon('sparkles', 'Open Agentic Dashboard', () => this.activateView());
+    this.addRibbonIcon('sparkles', 'Open dashboard', () => this.activateView());
     this.addCommand({
       id: 'open-dashboard',
-      name: 'Open Agentic Dashboard',
+      name: 'Open dashboard',
       callback: () => this.activateView(),
     });
 
@@ -847,7 +902,7 @@ class HermesDashboardPlugin extends Plugin {
   }
 
   agentHelp(action, usage) {
-    new Notice(`Agentic Dashboard · "${action}" needs: ${usage}`);
+    new Notice(`Agentic dashboard · "${action}" needs: ${usage}`);
   }
 
   registerAgentCliCommands() {
@@ -866,9 +921,9 @@ class HermesDashboardPlugin extends Plugin {
       }
     };
 
-    reg('agentic-dashboard', 'Open the Agentic Dashboard', null, async () => {
+    reg('agentic-dashboard', 'Open the Agentic dashboard', null, async () => {
       await this.activateView();
-      return 'Agentic Dashboard opened';
+      return 'Agentic dashboard opened';
     });
 
     reg('agentic-dashboard:add-task', "Append a task to a daily note ('today' by default)", {
@@ -949,7 +1004,7 @@ class HermesDashboardPlugin extends Plugin {
       switch (action) {
         case 'open-dashboard':
           await this.activateView();
-          new Notice('Agentic Dashboard opened ✓');
+          new Notice('Agentic dashboard opened ✓');
           return;
         case 'add-task': {
           if (!text) return this.agentHelp('add-task', 'text=Buy milk (&date=YYYY-MM-DD optional)');
@@ -963,7 +1018,7 @@ class HermesDashboardPlugin extends Plugin {
           if (!text) return this.agentHelp('capture', 'text=Idea about X (&type=thought|idea|reflection|to-watch|book|article)');
           const type = String(params.type || 'thought').trim() || 'thought';
           await this.captureToInbox(type, text);
-          new Notice('Saved to Inbox ✓');
+          new Notice('Saved to inbox ✓');
           this.refreshViews(400);
           return;
         }
@@ -993,11 +1048,11 @@ class HermesDashboardPlugin extends Plugin {
           return this.findAndOpenNote(q);
         }
         default:
-          new Notice('Agentic Dashboard · unknown action. Use: open-dashboard, add-task, capture, meeting, new-daily, open-note, find-note');
+          new Notice('Agentic dashboard · unknown action. Use: open-dashboard, add-task, capture, meeting, new-daily, open-note, find-note');
       }
     } catch (err) {
       console.error('[agentic-dashboard] action failed:', action, err);
-      new Notice(`Agentic Dashboard · action failed: ${err.message}`);
+      new Notice(`Agentic dashboard · action failed: ${err.message}`);
     }
   }
 
@@ -1015,7 +1070,7 @@ class HermesDashboardPlugin extends Plugin {
       if (score >= 0) scored.push({ f, score });
     }
     if (!scored.length) {
-      new Notice(`Agentic Dashboard · no note matching "${query}"`);
+      new Notice(`Agentic dashboard · no note matching "${query}"`);
       return;
     }
     const bestScore = Math.max(...scored.map((s) => s.score));
@@ -1168,7 +1223,7 @@ class HermesDashboardPlugin extends Plugin {
       '',
       sanitizeName(text),
       '',
-      '— captured from Agentic Dashboard',
+      '— captured from Agentic dashboard',
       '',
     ].join('\n');
     await this.app.vault.create(path, content);
