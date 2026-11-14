@@ -389,6 +389,8 @@
   transition: border-color .15s ease, transform .12s ease;
 }
 .hd-stat:hover { border-color: rgba(177, 140, 255, 0.4); transform: translateY(-1px); }
+.hd-stat.click { cursor: pointer; }
+.hd-stat.click:active { transform: translateY(0) scale(.97); }
 .hd-stat .hd-num {
   font-family: "Cascadia Code", Consolas, monospace;
   font-size: 21px;
@@ -444,6 +446,14 @@
   font-size: 10px;
   color: #71659a;
   white-space: nowrap;
+}
+
+/* ── At-a-glance reveal modal ────────────────────────────────── */
+.hd-modal .modal-content { padding: 0 18px 18px; }
+.hd-modal-list {
+  max-height: 55vh;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 .hd-task .hd-task-text {
   flex: 1 1 auto;
