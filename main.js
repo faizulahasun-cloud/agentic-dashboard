@@ -60,7 +60,7 @@ const RICH_CAPTURE_FIELDS = {
 };
 
 const DUE_EMOJI_RE = /[📅⏳🛫]\s*(\d{4}-\d{2}-\d{2})/;
-const TASK_LINE_RE = /^(\s*)- \[([ xX])\] ?(.*)$/;
+const TASK_LINE_RE = /^(\s*)(?:[-*]|\d+\.) \[([ xX-])\] ?(.*)$/;
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -88,19 +88,112 @@ function slugify(s) {
     .replace(/^-+|-+$/g, '') || 'thought';
 }
 
-// Strip wiki links ([[a|b]] -> b, [[a]] -> a) and trailing task emoji metadata.
+// Strip wiki links ([[a|b]] -> b, [[a]] -> a) and trailing task emoji metadata
+// (dates, done/cancelled stamps). Keeps priorities and recurrence rules visible.
 function cleanTaskText(raw) {
   let t = String(raw || '');
   t = t.replace(/\[\[[^\]]*\|([^\]]*)\]\]/g, '$1');
   t = t.replace(/\[\[([^\]]*)\]\]/g, '$1');
-  t = t.replace(/[\s]*[📅⏳🛫➕][^\s📅⏳🛫➕]*[\s]*$/, '');
-  t = t.replace(/\s+$/, '');
-  return t;
+  const META = /(?:\s+[📅⏳🛫➕✅❌]\s*\d{4}-\d{2}-\d{2})+$/;
+  let prev;
+  do { prev = t; t = t.replace(META, ''); } while (t !== prev);
+  return t.replace(/\s+$/, '');
 }
 
 function dueDateOf(lineText) {
   const m = DUE_EMOJI_RE.exec(String(lineText || ''));
   return m ? m[1] : null;
+}
+
+function scheduledDateOf(lineText) {
+  const m = /⏳\s*(\d{4}-\d{2}-\d{2})/.exec(String(lineText || ''));
+  return m ? m[1] : null;
+}
+
+function startDateOf(lineText) {
+  const m = /🛫\s*(\d{4}-\d{2}-\d{2})/.exec(String(lineText || ''));
+  return m ? m[1] : null;
+}
+
+const DONE_DATE_RE = /✅\s*\d{4}-\d{2}-\d{2}/;
+const CANCELLED_DATE_RE = /❌\s*\d{4}-\d{2}-\d{2}/;
+
+function priorityOf(text) {
+  const t = String(text || '');
+  if (t.includes('⏫')) return 'high';
+  if (t.includes('🔼')) return 'medium';
+  if (t.includes('🔽') || t.includes('⏬')) return 'low';
+  return null;
+}
+
+function priorityRank(p) {
+  if (p === 'high') return 0;
+  if (p === 'medium') return 1;
+  if (p === 'low') return 2;
+  return 3;
+}
+
+/* ── recurrence (Tasks-compatible subset) ────────────────────── */
+
+const WEEKDAY_NAMES = {
+  sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+  thursday: 4, friday: 5, saturday: 6,
+};
+
+// Parse `🔁 <rule>` from a task body. Supports the common subset:
+//   every day / week / month / year, every N days|weeks|months|years,
+//   every weekday, every week on Sunday[, Monday…], every Sunday[, Monday…],
+//   any rule with a trailing `when done`.
+// Unsupported rules return null (completion simply adds no new occurrence).
+function parseRecurrence(body) {
+  const m = /🔁\s*([^📅⏳🛫➕✅❌]+)/.exec(String(body || ''));
+  if (!m) return null;
+  let rule = m[1].trim();
+  if (!rule) return null;
+  let whenDone = false;
+  rule = rule.replace(/,?\s*when\s+done\s*/i, () => { whenDone = true; return ' '; }).trim();
+  if (!rule) return null;
+  let mm;
+  if ((mm = /^every\s+weekday$/i.exec(rule))) {
+    return { rule, whenDone, kind: 'weekdays', weekdays: [1, 2, 3, 4, 5] };
+  }
+  if ((mm = /^every\s+(?:week\s+on\s+)?((?:sunday|monday|tuesday|wednesday|thursday|friday|saturday)(?:\s*,\s*(?:sunday|monday|tuesday|wednesday|thursday|friday|saturday))*)$/i.exec(rule))) {
+    return { rule, whenDone, kind: 'weekdays', weekdays: mm[1].split(/\s*,\s*/).map((s) => WEEKDAY_NAMES[s.toLowerCase()]) };
+  }
+  if ((mm = /^every\s+(?:(\d+)\s+)?(day|week|month|year)s?$/i.exec(rule))) {
+    return { rule, whenDone, kind: 'interval', n: mm[1] ? parseInt(mm[1], 10) : 1, unit: mm[2].toLowerCase() };
+  }
+  return null;
+}
+
+function shiftDate(dateStr, days) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  d.setDate(d.getDate() + days);
+  return ymd(d);
+}
+
+function addMonthsClamp(dateStr, n) {
+  const d = new Date(`${dateStr}T00:00:00`);
+  const day = d.getDate();
+  d.setDate(1);
+  d.setMonth(d.getMonth() + n);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, last));
+  return ymd(d);
+}
+
+function computeNextRecurrence(rec, base) {
+  if (rec.kind === 'interval') {
+    if (rec.unit === 'day') return shiftDate(base, rec.n);
+    if (rec.unit === 'week') return shiftDate(base, 7 * rec.n);
+    if (rec.unit === 'month') return addMonthsClamp(base, rec.n);
+    return addMonthsClamp(base, 12 * rec.n);
+  }
+  const b = new Date(`${base}T00:00:00`).getDay();
+  for (let i = 1; i <= 7; i++) {
+    if (rec.weekdays.includes((b + i) % 7)) return shiftDate(base, i);
+  }
+  return null;
 }
 
 function fromNow(ts) {
@@ -203,8 +296,10 @@ class HermesDashboardView extends ItemView {
           const line = lines[li.position.start.line] || '';
           const m = TASK_LINE_RE.exec(line);
           if (!m) continue;
-          const isDone = m[2] !== ' ';
+          const isCancelled = m[2] === '-';
+          const isDone = m[2] === 'x' || m[2] === 'X';
           const raw = m[3];
+          if (isCancelled) continue; // cancelled: neither open nor done
           if (isDone) { data.doneCount++; data.doneList.push({ path: f.path, base: f.basename, raw }); continue; }
           data.openCount++;
 
@@ -255,6 +350,8 @@ class HermesDashboardView extends ItemView {
       const da = a.due || '9999-99-99';
       const db = b.due || '9999-99-99';
       if (da !== db) return da < db ? -1 : 1;
+      const pa = priorityRank(priorityOf(a.raw)) - priorityRank(priorityOf(b.raw));
+      if (pa !== 0) return pa;
       return a.raw.localeCompare(b.raw);
     });
     data.tasks = allTasks.slice(0, Math.max(1, s.tasksCap));
@@ -269,6 +366,8 @@ class HermesDashboardView extends ItemView {
       if (ra !== rb) return ra - rb;
       const da = a.due || '9999-99-99', db = b.due || '9999-99-99';
       if (da !== db) return da < db ? -1 : 1;
+      const pa = priorityRank(priorityOf(a.raw)) - priorityRank(priorityOf(b.raw));
+      if (pa !== 0) return pa;
       return a.raw.localeCompare(b.raw);
     });
 
@@ -1465,12 +1564,13 @@ class HermesDashboardPlugin extends Plugin {
     }
     const existing = await this.app.vault.read(f);
     const content = existing.endsWith('\n') ? existing : existing + '\n';
-    await this.app.vault.modify(f, `${content}- [ ] ${sanitizeName(text)}\n`);
+    await this.app.vault.modify(f, `${content}- [ ] ${sanitizeName(text)} ➕ ${ymd(new Date())}\n`);
   }
 
   async toggleTaskLine(path, rawLine) {
     const f = this.app.vault.getAbstractFileByPath(path);
     if (!(f instanceof TFile)) return;
+    const today = ymd(new Date());
     await this.app.vault.process(f, (text) => {
       const lines = text.split('\n');
       let idx = lines.indexOf(rawLine);
@@ -1479,8 +1579,42 @@ class HermesDashboardPlugin extends Plugin {
         idx = lines.findIndex((l) => l.trim() === target);
       }
       if (idx === -1) return text;
-      if (/\[ \]/.test(lines[idx])) lines[idx] = lines[idx].replace('[ ]', '[x]');
-      else if (/\[[xX]\]/.test(lines[idx])) lines[idx] = lines[idx].replace(/\[[xX]\]/, '[ ]');
+      const m = TASK_LINE_RE.exec(lines[idx]);
+      if (!m) return text;
+      const indent = m[1];
+      const status = m[2];
+      const body = m[3];
+
+      if (status === ' ') {
+        // open -> done (+ cancelled stamps removed if re-opening happened before)
+        let doneLine = `${indent}${lines[idx].replace('[ ]', '[x]')}`;
+        if (!DONE_DATE_RE.test(doneLine)) doneLine += ` ✅ ${today}`;
+        lines[idx] = doneLine;
+
+        // recurring task: create the next occurrence above the completed one
+        const rec = parseRecurrence(body);
+        if (rec) {
+          const ref = dueDateOf(body) || scheduledDateOf(body) || startDateOf(body);
+          if (ref) {
+            const next = computeNextRecurrence(rec, rec.whenDone ? today : ref);
+            if (next) {
+              const delta = Math.round((new Date(`${next}T00:00:00`) - new Date(`${ref}T00:00:00`)) / 86400000);
+              let nb = body;
+              if (startDateOf(nb)) nb = nb.replace(/🛫\s*\d{4}-\d{2}-\d{2}/, `🛫 ${shiftDate(startDateOf(nb), delta)}`);
+              if (scheduledDateOf(nb)) nb = nb.replace(/⏳\s*\d{4}-\d{2}-\d{2}/, `⏳ ${shiftDate(scheduledDateOf(nb), delta)}`);
+              nb = nb.replace(/📅\s*\d{4}-\d{2}-\d{2}/, `📅 ${next}`);
+              lines.splice(idx, 0, `${indent}- [ ] ${nb}`);
+            }
+          }
+        }
+      } else {
+        // done/cancelled -> open: drop the completion/cancellation stamp
+        lines[idx] = lines[idx]
+          .replace(/\[[xX]\]/, '[ ]')
+          .replace(/\[-\]/, '[ ]')
+          .replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, '')
+          .replace(/\s*❌\s*\d{4}-\d{2}-\d{2}/, '');
+      }
       return lines.join('\n');
     });
     new Notice('Task updated ✓');
