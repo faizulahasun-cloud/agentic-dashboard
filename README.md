@@ -7,7 +7,7 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 ## Features
 
 - ✦ **Hero banner** — animated video (or poster image) with your live clock and today's date / ISO week
-- ＋ **Quick capture** — send thoughts, ideas, reflections, books, articles to your Inbox folder with one Enter press; chips pick the note type
+- ＋ **Quick capture** — one-Enter captures for thoughts, ideas and articles; the reflection, to-watch and book chips open a fuller form (context + takeaway, link, author + reading status) and build a structured inbox note with frontmatter (`author`, `status`, `source`) and body sections
 - **Tasks today** — open tasks from today's daily note plus every task across the vault that is due today or overdue (📅 / ⏳ / 🛫 emoji dates), click to toggle done
 - **Calendar** — Monday-start month view, dots on days with a daily note, click any day to open/create that daily note
 - **Meetings today** — notes in the meetings folder whose frontmatter `date` is today; the **Meeting** button opens a full form (name, date, time, agenda, notes, decisions, action items) that builds the complete meeting note
