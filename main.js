@@ -41,6 +41,24 @@ const CAPTURE_TYPES = [
   { label: 'Article 📰', slug: 'article' },
 ];
 
+// Broader capture types open a structured form instead of the one-liner input
+const RICH_CAPTURE_SLUGS = ['reflection', 'to-watch', 'book'];
+const RICH_CAPTURE_FIELDS = {
+  reflection: [
+    { key: 'context', label: 'Context', placeholder: 'What triggered this reflection…', rows: 3 },
+    { key: 'takeaway', label: 'Takeaway', placeholder: 'The lesson or insight…', rows: 3 },
+  ],
+  'to-watch': [
+    { key: 'source', label: 'Link / where', placeholder: 'URL or platform…', rows: 2 },
+    { key: 'body', label: 'Notes', placeholder: 'Why it looks interesting…', rows: 3 },
+  ],
+  book: [
+    { key: 'author', label: 'Author', placeholder: 'Author name…', rows: 2 },
+    { key: 'status', label: 'Status', kind: 'select', options: ['want-to-read', 'reading', 'finished'] },
+    { key: 'body', label: 'Notes', placeholder: 'Why you want it / thoughts…', rows: 3 },
+  ],
+};
+
 const DUE_EMOJI_RE = /[📅⏳🛫]\s*(\d{4}-\d{2}-\d{2})/;
 const TASK_LINE_RE = /^(\s*)- \[([ xX])\] ?(.*)$/;
 
@@ -386,6 +404,10 @@ class HermesDashboardView extends ItemView {
     for (const t of CAPTURE_TYPES) {
       const chip = chips.createEl('button', { cls: 'hd-chip', text: t.label });
       chip.addEventListener('click', () => {
+        if (RICH_CAPTURE_SLUGS.includes(t.slug)) {
+          this.plugin.openCaptureModal(t.slug);
+          return;
+        }
         // clicking a chip selects it as the capture type (plain capture mode)
         if (this.captureMode !== '__task') {
           this.activeChip = this.activeChip === t.slug ? null : t.slug;
@@ -862,6 +884,86 @@ class HdMeetingModal extends Modal {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   ✦ Rich capture form modal (reflection / to-watch / book)
+   ════════════════════════════════════════════════════════════════ */
+
+class HdCaptureModal extends Modal {
+  constructor(app, plugin, slug) {
+    super(app);
+    this.plugin = plugin;
+    this.slug = slug;
+  }
+
+  onOpen() {
+    const type = CAPTURE_TYPES.find((x) => x.slug === this.slug) || { label: 'Capture' };
+    this.titleEl.setText(`New ${type.label.replace(/\s\S+$/, '').toLowerCase()}`);
+    this.modalEl.addClass('hd-modal');
+    const form = this.contentEl.createDiv({ cls: 'hd-form' });
+
+    const titleRow = form.createDiv({ cls: 'hd-form-row' });
+    titleRow.createEl('label', { text: 'Title' });
+    const title = titleRow.createEl('input', {
+      cls: 'hd-input',
+      attr: { type: 'text', placeholder: type.label },
+    });
+
+    const fields = RICH_CAPTURE_FIELDS[this.slug] || [];
+    const controls = {};
+    for (const f of fields) {
+      const row = form.createDiv({ cls: 'hd-form-row' });
+      row.createEl('label', { text: f.label });
+      if (f.kind === 'select') {
+        const sel = row.createEl('select', { cls: 'hd-input dropdown' });
+        for (const opt of f.options) sel.createEl('option', { value: opt, text: opt });
+        controls[f.key] = sel;
+      } else if ((f.rows || 0) <= 1) {
+        controls[f.key] = row.createEl('input', {
+          cls: 'hd-input',
+          attr: { type: 'text', placeholder: f.placeholder || '' },
+        });
+      } else {
+        controls[f.key] = row.createEl('textarea', {
+          cls: 'hd-input hd-textarea',
+          attr: { rows: f.rows, placeholder: f.placeholder || '' },
+        });
+      }
+    }
+
+    const btnRow = form.createDiv({ cls: 'hd-form-btns' });
+    const cancel = btnRow.createEl('button', { text: 'Cancel' });
+    const create = btnRow.createEl('button', { cls: 'mod-cta', text: 'Save to inbox' });
+
+    cancel.addEventListener('click', () => this.close());
+    create.addEventListener('click', async () => {
+      const value = title.value.trim();
+      if (!value) { title.focus(); return; }
+      try {
+        const values = {};
+        for (const f of fields) {
+          const el = controls[f.key];
+          values[f.key] = el ? String(el.value || '').trim() : '';
+        }
+        await this.plugin.captureToInbox(this.slug, value, values);
+        new Notice('Saved to inbox ✓');
+        this.close();
+        this.plugin.refreshViews(400);
+      } catch (e) {
+        console.error('[agentic-dashboard] capture failed', e);
+        new Notice('Agentic dashboard: could not save (see console)');
+      }
+    });
+    title.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Enter') { evt.preventDefault(); create.click(); }
+    });
+    title.focus();
+  }
+
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
    ✦ Settings tab
    ════════════════════════════════════════════════════════════════ */
 
@@ -1138,11 +1240,17 @@ class HermesDashboardPlugin extends Plugin {
     reg('agentic-dashboard:capture', 'Create a quick note in the Inbox folder', {
       text: flag('Note text (used as title + body)', '<text>', true),
       type: flag('thought | idea | reflection | to-watch | book | article', '<type>'),
+      context: flag('Reflection: context (\\n separated)', '<text>'),
+      takeaway: flag('Reflection: takeaway (\\n separated)', '<text>'),
+      source: flag('To watch: link or platform', '<text>'),
+      author: flag('Book: author', '<text>'),
+      status: flag('Book: want-to-read | reading | finished', '<text>'),
+      body: flag('Notes body (\\n separated)', '<text>'),
     }, async (f) => {
       const text = String(f.text || '').trim();
       if (!text) return 'error: text=<note text> is required';
       const type = String(f.type || 'thought').trim() || 'thought';
-      await this.captureToInbox(type, text);
+      await this.captureToInbox(type, text, f);
       this.refreshViews(400);
       return `Saved to Inbox (${type}): ${text}`;
     });
@@ -1225,7 +1333,7 @@ class HermesDashboardPlugin extends Plugin {
         case 'capture': {
           if (!text) return this.agentHelp('capture', 'text=Idea about X (&type=thought|idea|reflection|to-watch|book|article)');
           const type = String(params.type || 'thought').trim() || 'thought';
-          await this.captureToInbox(type, text);
+          await this.captureToInbox(type, text, params);
           new Notice('Saved to inbox ✓');
           this.refreshViews(400);
           return;
@@ -1382,6 +1490,10 @@ class HermesDashboardPlugin extends Plugin {
     new HdMeetingModal(this.app, this).open();
   }
 
+  openCaptureModal(slug) {
+    new HdCaptureModal(this.app, this, slug).open();
+  }
+
   async createMeeting(title, timeOpt, opts) {
     const o = opts || {};
     const now = new Date();
@@ -1430,7 +1542,8 @@ class HermesDashboardPlugin extends Plugin {
     await this.app.vault.create(path, content);
   }
 
-  async captureToInbox(type, text) {
+  async captureToInbox(type, text, opts) {
+    const o = opts || {};
     const now = new Date();
     const dateStr = ymd(now);
     const timeStr = `${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`;
@@ -1440,16 +1553,39 @@ class HermesDashboardPlugin extends Plugin {
       await this.app.vault.createFolder(folder);
     }
     const path = `${folder}/${dateStr} ${timeStr} - ${name}.md`;
+
+    // rich captures: extra frontmatter + body sections
+    const paras = (v) => String(v || '').split(/\r?\n|\\n/).map((x) => x.trim()).filter(Boolean);
+    const extraFm = [];
+    const sections = [];
+    if (type === 'reflection') {
+      const ctx = paras(o.context);
+      if (ctx.length) sections.push('## Context', '', ctx.join('\n'), '');
+      const tk = paras(o.takeaway);
+      if (tk.length) sections.push('## Takeaway', '', tk.join('\n'), '');
+    } else if (type === 'to-watch') {
+      if (o.source) extraFm.push(`source: ${String(o.source).trim()}`);
+      const b = paras(o.body);
+      if (b.length) sections.push('## Notes', '', b.join('\n'), '');
+    } else if (type === 'book') {
+      if (o.author) extraFm.push(`author: ${String(o.author).trim()}`);
+      if (o.status) extraFm.push(`status: ${String(o.status).trim()}`);
+      const b = paras(o.body);
+      if (b.length) sections.push('## Notes', '', b.join('\n'), '');
+    }
+
     const content = [
       '---',
       'type: inbox',
       `tag: ${slugify(type)}`,
       `date: ${dateStr}`,
       `time: ${timeStr}`,
+      ...extraFm,
       '---',
       '',
       sanitizeName(text),
       '',
+      ...sections,
       '— captured from Agentic dashboard',
       '',
     ].join('\n');
