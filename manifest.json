@@ -1,7 +1,7 @@
 {
   "id": "agentic-dashboard",
   "name": "Agentic Dashboard",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "minAppVersion": "1.4.0",
   "description": "A crystal-glass daily dashboard: video hero, quick capture, today's tasks, calendar, stats, meetings, recents and inbox — with agent actions. No Dataview required.",
   "author": "Hermes",
