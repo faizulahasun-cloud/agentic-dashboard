@@ -29,6 +29,7 @@ const DEFAULT_SETTINGS = {
   posterPath: '',
   posterPhonePath: '',
   linkNotes: false,
+  dashboardNote: '',
   tasksCap: 18,
   refreshSeconds: 60,
 };
@@ -516,6 +517,17 @@ class HermesDashboardView extends ItemView {
       });
       this.chipEls.set(t.slug, chip);
     }
+
+    // quick task chip: one-line task into today's daily note (the ＋ Task button opens the full form)
+    const taskChip = chips.createEl('button', { cls: 'hd-chip', text: 'Task ⚡' });
+    taskChip.addEventListener('click', () => {
+      if (this.captureMode === '__task') { this.resetCapture(); return; }
+      this.captureMode = '__task';
+      this.activeChip = null;
+      this.refreshCaptureUI();
+      this.focusInput();
+    });
+    this.chipEls.set('__task', taskChip);
   }
 
   refreshCaptureUI() {
@@ -530,7 +542,7 @@ class HermesDashboardView extends ItemView {
 
     if (this.chipEls) {
       for (const [slug, el] of this.chipEls) {
-        el.toggleClass('is-active', this.activeChip === slug);
+        el.toggleClass('is-active', this.activeChip === slug || (slug === '__task' && this.captureMode === '__task'));
       }
     }
   }
@@ -1165,6 +1177,7 @@ class HermesDashboardSettingTab extends PluginSettingTab {
           { name: 'Journal folder', desc: 'Folder holding YYYY-MM-DD daily notes.', control: { type: 'folder', key: 'journalFolder', defaultValue: D.journalFolder } },
           { name: 'Inbox folder', desc: 'Folder where quick captures are stored.', control: { type: 'folder', key: 'inboxFolder', defaultValue: D.inboxFolder } },
           { name: 'Meetings folder', desc: 'Folder where new meetings are created.', control: { type: 'folder', key: 'meetingsFolder', defaultValue: D.meetingsFolder } },
+          { name: 'Dashboard note', desc: 'Name of your dashboard note — new daily notes link to it. Leave empty for no link.', control: { type: 'text', key: 'dashboardNote', defaultValue: D.dashboardNote } },
         ],
       },
       {
@@ -1233,6 +1246,12 @@ class HermesDashboardSettingTab extends PluginSettingTab {
       .setDesc('Folder where new meetings are created.')
       .addText((t) => t.setValue(this.plugin.settings.meetingsFolder)
         .onChange(async (v) => { this.plugin.settings.meetingsFolder = v.trim(); await this.plugin.saveSettings(); }));
+
+    new Setting(containerEl)
+      .setName('Dashboard note')
+      .setDesc('Name of your dashboard note — new daily notes link to it. Leave empty for no link.')
+      .addText((t) => t.setValue(this.plugin.settings.dashboardNote)
+        .onChange(async (v) => { this.plugin.settings.dashboardNote = v.trim(); await this.plugin.saveSettings(); }));
 
     new Setting(containerEl)
       .setName('Hero video path')
@@ -1544,7 +1563,7 @@ class HermesDashboardPlugin extends Plugin {
         }
         case 'open-note': {
           const p = String(params.path || '').trim();
-          if (!p) return this.agentHelp('open-note', 'path=open code/Journal/2026-11-13.md');
+          if (!p) return this.agentHelp('open-note', 'path=Journal/2026-11-13.md');
           const f = this.app.vault.getAbstractFileByPath(p);
           if (f instanceof TFile && f.extension === 'md') return void (await open(f));
           return this.findAndOpenNote(p);
@@ -1600,13 +1619,20 @@ class HermesDashboardPlugin extends Plugin {
   dailyTemplateFor(dateStr) {
     const d = new Date(dateStr + 'T00:00:00');
     const wk = pad2(isoWeek(d));
+    const name = String(this.settings.dashboardNote || '').trim();
+    let head = `## Week ${wk}`;
+    if (name) {
+      const dest = this.app.metadataCache.getFirstLinkpathDest(name, '');
+      const path = dest instanceof TFile ? dest.path : name;
+      head += ` ⌂ ${this.linkFor(name, path)}`;
+    }
     return [
       '---',
       'type: daily',
       `date: ${dateStr}`,
       '---',
       '',
-      `## Week ${wk} ⌂ [[000 - Dashboard]]`,
+      head,
       '',
       '### ✅ Tasks',
       '',
