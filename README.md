@@ -16,6 +16,7 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 - **Recent notes** — 7 most recently modified notes
 - **Inbox** — 10 newest captures with their type tag
 - **Auto-refresh** — the dashboard updates when your vault changes
+- **Linked notes (optional)** — with *Link notes together* on, the daily note gains a `## Meetings` and a `## Captures` section linking to that day's notes, and meeting notes link back to their day — so the graph and backlinks come alive; off by default
 - **Open at startup** — automatically opens when Obsidian starts (toggle in settings)
 - **Agent & automation actions** — official Obsidian CLI commands (`obsidian agentic-dashboard:add-task text="..."`) plus `obsidian://agentic-dashboard` URI actions; agents and scripts can drive the vault with no extra plugin or server
 
@@ -41,6 +42,7 @@ Download `manifest.json`, `main.js` and `styles.css` from the latest release int
 | Meetings folder | `Meetings` | Where new meetings are created |
 | Hero video path | *(empty)* | Video behind the hero (empty → gradient) |
 | Poster (desktop / mobile) | *(empty)* | Fallback image when there is no video |
+| Link notes together | off | Connect daily notes, meetings and captures with links (respects your Files and links format preference) |
 | Max tasks shown | `18` | Cap for the Tasks today card |
 | Auto refresh | `60` s | Background refresh interval (0 = off) |
 
