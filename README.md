@@ -9,7 +9,7 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 - ✦ **Hero banner** — animated video (or poster image) with your live clock and today's date / ISO week
 - ＋ **Quick capture** — one-Enter captures for thoughts, ideas and articles; the reflection, to-watch and book chips open a fuller form (context + takeaway, link, author + reading status) and build a structured inbox note with frontmatter (`author`, `status`, `source`) and body sections
 - **Tasks today** — open tasks from today's daily note plus every task across the vault that is due today or overdue (📅 / ⏳ / 🛫 emoji dates), click to toggle done
-- **Task features from the Tasks ecosystem** — completing a task stamps it with a done date ✅; adding one stamps a created date ➕; recurring tasks (🔁 every week, every 3 days, every weekday, `when done`, …) generate their next occurrence automatically on completion; priorities (⏫ 🔼 🔽) are preserved and sort overdue lists; cancelled tasks (`- [-]`) are excluded; `*` and numbered checkboxes are supported
+- **Task features from the Tasks ecosystem** — the ＋ Task button opens a rich form (name, date, priority, repeat) so tasks for future days can be scheduled today; completing a task stamps it with a done date ✅; adding one stamps a created date ➕; recurring tasks (🔁 every week, every 3 days, every weekday, `when done`, …) generate their next occurrence automatically on completion; priorities (⏫ 🔼 🔽) are preserved and sort overdue lists; cancelled tasks (`- [-]`) are excluded; `*` and numbered checkboxes are supported
 - **Calendar** — Monday-start month view, dots on days with a daily note, click any day to open/create that daily note
 - **Meetings today** — notes in the meetings folder whose frontmatter `date` is today; the **Meeting** button opens a full form (name, date, time, agenda, notes, decisions, action items) that builds the complete meeting note
 - **At a glance reveals** — every stat tile is clickable: open and completed tasks, inbox notes, today's meetings and recently modified files each open a clickable list; the notes stat opens the file explorer
@@ -70,7 +70,8 @@ Requires the Obsidian CLI to be enabled (**Settings → General → Command line
 |---|---|
 | `obsidian agentic-dashboard` | Opens the dashboard |
 | `obsidian agentic-dashboard:add-task text="Call plumber"` | Appends `- [ ] Call plumber` to today's daily note (creates it if missing) |
-| `obsidian agentic-dashboard:add-task text="Call plumber" date=2026-11-14` | Adds to that day's daily note |
+| `obsidian agentic-dashboard:add-task text="Call plumber" date=2026-11-14` | Adds to that day's daily note (future days created if missing) |
+| `obsidian agentic-dashboard:add-task text="Call plumber" date=2026-11-20 priority=high recurrence="every month"` | Task with priority and repeat rule |
 | `obsidian agentic-dashboard:capture text="Read X" type=idea` | Creates an Inbox note (type: thought/idea/reflection/to-watch/book/article) |
 | `obsidian agentic-dashboard:meeting title="Design review" date=2026-11-20 time=14:30` | Creates a meeting note (date/time/agenda/notes/decisions/actions all optional) |
 | `obsidian agentic-dashboard:new-daily date=2026-11-14` | Creates (if missing) and opens that daily note |
@@ -90,7 +91,7 @@ The plugin registers `obsidian://agentic-dashboard?action=...` — useful for li
 | Action | URL | What it does |
 |---|---|---|
 | Add task | `...?action=add-task&text=Call plumber` | Appends to today's daily note |
-| Add task on a date | `...?action=add-task&text=Call plumber&date=2026-11-14` | Adds to that day's daily note |
+| Add task on a date | `...?action=add-task&text=Call plumber&date=2026-11-14&priority=high&recurrence=every week` | Task with date, priority and repeat |
 | Capture to inbox | `...?action=capture&text=Read X&type=idea` | Creates an Inbox note |
 | New meeting | `...?action=meeting&title=Design review&date=2026-11-20&time=14:30` | Creates a meeting note |
 | Daily note | `...?action=new-daily` (`&date=` optional) | Creates if missing and opens it |
