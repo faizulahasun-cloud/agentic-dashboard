@@ -473,10 +473,7 @@ class HermesDashboardView extends ItemView {
 
     const taskBtn = actions.createEl('button', { cls: 'hd-btn', text: '＋ Task' });
     taskBtn.addEventListener('click', () => {
-      this.captureMode = '__task';
-      this.activeChip = null;
-      this.refreshCaptureUI();
-      this.focusInput();
+      this.plugin.openTaskModal();
     });
 
     const meetBtn = actions.createEl('button', { cls: 'hd-btn', text: 'Meeting' });
@@ -984,6 +981,81 @@ class HdMeetingModal extends Modal {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   ✦ Rich task form modal
+   ════════════════════════════════════════════════════════════════ */
+
+class HdTaskModal extends Modal {
+  constructor(app, plugin) {
+    super(app);
+    this.plugin = plugin;
+  }
+
+  onOpen() {
+    this.titleEl.setText('New task');
+    this.modalEl.addClass('hd-modal');
+    const form = this.contentEl.createDiv({ cls: 'hd-form' });
+
+    const nameRow = form.createDiv({ cls: 'hd-form-row' });
+    nameRow.createEl('label', { text: 'Task' });
+    const name = nameRow.createEl('input', {
+      cls: 'hd-input',
+      attr: { type: 'text', placeholder: 'Dentist appointment' },
+    });
+
+    const dtRow = form.createDiv({ cls: 'hd-form-row hd-form-inline' });
+    const dwrap = dtRow.createDiv();
+    dwrap.createEl('label', { text: 'Date' });
+    const date = dwrap.createEl('input', {
+      cls: 'hd-input',
+      attr: { type: 'date', value: ymd(new Date()) },
+    });
+    const pwrap = dtRow.createDiv();
+    pwrap.createEl('label', { text: 'Priority' });
+    const priority = pwrap.createEl('select', { cls: 'hd-input' });
+    for (const [val, label] of [['', 'None'], ['high', 'High ⏫'], ['medium', 'Medium 🔼'], ['low', 'Low 🔽']]) {
+      priority.createEl('option', { value: val, text: label });
+    }
+
+    const recRow = form.createDiv({ cls: 'hd-form-row' });
+    recRow.createEl('label', { text: 'Repeat (optional)' });
+    const recurrence = recRow.createEl('input', {
+      cls: 'hd-input',
+      attr: { type: 'text', placeholder: 'e.g. every week, every 3 days, every weekday' },
+    });
+
+    const btnRow = form.createDiv({ cls: 'hd-form-btns' });
+    const cancel = btnRow.createEl('button', { text: 'Cancel' });
+    const create = btnRow.createEl('button', { cls: 'mod-cta', text: 'Create task' });
+
+    cancel.addEventListener('click', () => this.close());
+    create.addEventListener('click', async () => {
+      const text = name.value.trim();
+      if (!text) { name.focus(); return; }
+      try {
+        await this.plugin.addTaskToDaily(text, date.value, {
+          priority: priority.value,
+          recurrence: recurrence.value,
+        });
+        new Notice('Task created ✓');
+        this.close();
+        this.plugin.refreshViews(400);
+      } catch (e) {
+        console.error('[agentic-dashboard] task creation failed', e);
+        new Notice('Agentic dashboard: could not create task');
+      }
+    });
+    name.addEventListener('keydown', (evt) => {
+      if (evt.key === 'Enter') { evt.preventDefault(); create.click(); }
+    });
+    name.focus();
+  }
+
+  onClose() {
+    this.contentEl.empty();
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
    ✦ Rich capture form modal (reflection / to-watch / book)
    ════════════════════════════════════════════════════════════════ */
 
@@ -1333,11 +1405,16 @@ class HermesDashboardPlugin extends Plugin {
     reg('agentic-dashboard:add-task', "Append a task to a daily note ('today' by default)", {
       text: flag('Task text', '<text>', true),
       date: flag('Target date (YYYY-MM-DD, default today)', '<date>'),
+      priority: flag('high | medium | low', '<priority>'),
+      recurrence: flag("Recurrence rule, e.g. 'every week'", '<rule>'),
     }, async (f) => {
       const text = String(f.text || '').trim();
       if (!text) return 'error: text=<task text> is required';
       const dateStr = this.normalizeDate(f.date);
-      await this.addTaskToDaily(text, dateStr);
+      await this.addTaskToDaily(text, dateStr, {
+        priority: String(f.priority || '').trim().toLowerCase(),
+        recurrence: String(f.recurrence || '').trim(),
+      });
       this.refreshViews(400);
       return `Task added to ${dateStr}: ${text}`;
     });
@@ -1428,9 +1505,12 @@ class HermesDashboardPlugin extends Plugin {
           new Notice('Agentic dashboard opened ✓');
           return;
         case 'add-task': {
-          if (!text) return this.agentHelp('add-task', 'text=Buy milk (&date=YYYY-MM-DD optional)');
+          if (!text) return this.agentHelp('add-task', 'text=Buy milk (&date=YYYY-MM-DD &priority=high &recurrence=every week optional)');
           const dateStr = this.normalizeDate(params.date);
-          await this.addTaskToDaily(text, dateStr);
+          await this.addTaskToDaily(text, dateStr, {
+            priority: params.priority,
+            recurrence: params.recurrence,
+          });
           new Notice(`Task added to ${dateStr} ✓`);
           this.refreshViews(400);
           return;
@@ -1557,20 +1637,19 @@ class HermesDashboardPlugin extends Plugin {
     return f;
   }
 
-  async addTaskToDaily(text, dateOpt) {
+  async addTaskToDaily(text, dateOpt, opts) {
+    const o = opts || {};
     const dateStr = this.normalizeDate(dateOpt);
-    const path = this.dailyPathFor(dateStr);
-    let f = this.app.vault.getAbstractFileByPath(path);
-    if (!(f instanceof TFile)) {
-      const folder = this.settings.journalFolder;
-      if (!(this.app.vault.getAbstractFileByPath(folder) instanceof TFolder)) {
-        await this.app.vault.createFolder(folder);
-      }
-      f = await this.app.vault.create(path, this.dailyTemplateFor(dateStr));
-    }
+    const f = await this.ensureDailyNote(dateStr);
+    let prio = '';
+    if (o.priority === 'high') prio = ' ⏫';
+    else if (o.priority === 'medium') prio = ' 🔼';
+    else if (o.priority === 'low') prio = ' 🔽';
+    const rule = String(o.recurrence || '').trim().replace(/\s+/g, ' ');
+    const rec = rule ? ` 🔁 ${rule}` : '';
     const existing = await this.app.vault.read(f);
     const content = existing.endsWith('\n') ? existing : existing + '\n';
-    await this.app.vault.modify(f, `${content}- [ ] ${sanitizeName(text)} ➕ ${ymd(new Date())}\n`);
+    await this.app.vault.modify(f, `${content}- [ ] ${sanitizeName(text)}${prio}${rec} ➕ ${ymd(new Date())} 📅 ${dateStr}\n`);
   }
 
   async toggleTaskLine(path, rawLine) {
@@ -1628,6 +1707,10 @@ class HermesDashboardPlugin extends Plugin {
 
   openMeetingModal() {
     new HdMeetingModal(this.app, this).open();
+  }
+
+  openTaskModal() {
+    new HdTaskModal(this.app, this).open();
   }
 
   openCaptureModal(slug) {
