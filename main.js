@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS = {
   videoPath: '',
   posterPath: '',
   posterPhonePath: '',
+  linkNotes: false,
   tasksCap: 18,
   refreshSeconds: 60,
 };
@@ -1081,6 +1082,11 @@ class HermesDashboardSettingTab extends PluginSettingTab {
         control: { type: 'toggle', key: 'openOnStartup', defaultValue: D.openOnStartup },
       },
       {
+        name: 'Link notes together',
+        desc: 'Connect daily notes, meetings and captures with links (follows your Files and links format preference). Linking a capture or meeting also creates that daily note if missing.',
+        control: { type: 'toggle', key: 'linkNotes', defaultValue: D.linkNotes },
+      },
+      {
         type: 'group',
         heading: 'Folders',
         items: [
@@ -1628,6 +1634,51 @@ class HermesDashboardPlugin extends Plugin {
     new HdCaptureModal(this.app, this, slug).open();
   }
 
+  /* ---------- note linking (optional) ---------- */
+
+  usesMarkdownLinks() {
+    try { return !!this.app.vault.getConfig('useMarkdownLinks'); } catch (e) { return false; }
+  }
+
+  linkFor(title, vaultPath) {
+    if (this.usesMarkdownLinks()) return `[${title}](${encodeURI(vaultPath)})`;
+    return `[[${title}]]`;
+  }
+
+  async ensureDailyNote(dateStr) {
+    const path = this.dailyPathFor(dateStr);
+    let f = this.app.vault.getAbstractFileByPath(path);
+    if (f instanceof TFile) return f;
+    const folder = this.settings.journalFolder;
+    if (!(this.app.vault.getAbstractFileByPath(folder) instanceof TFolder)) {
+      await this.app.vault.createFolder(folder);
+    }
+    return this.app.vault.create(path, this.dailyTemplateFor(dateStr));
+  }
+
+  upsertSectionLine(content, heading, line) {
+    const lines = content.split('\n');
+    const hIdx = lines.findIndex((l) => l.trim() === heading);
+    if (hIdx === -1) {
+      const out = content.replace(/\s*$/, '');
+      return `${out}\n\n${heading}\n\n${line}\n`;
+    }
+    let insertAt = hIdx + 1;
+    while (insertAt < lines.length && lines[insertAt].trim() === '') insertAt++;
+    lines.splice(insertAt, 0, line);
+    return lines.join('\n');
+  }
+
+  async linkIntoDaily(dateStr, heading, entry) {
+    if (!this.settings.linkNotes) return;
+    try {
+      const daily = await this.ensureDailyNote(dateStr);
+      await this.app.vault.process(daily, (text) => this.upsertSectionLine(text, heading, entry));
+    } catch (e) {
+      console.error('[agentic-dashboard] linking daily note failed', e);
+    }
+  }
+
   async createMeeting(title, timeOpt, opts) {
     const o = opts || {};
     const now = new Date();
@@ -1656,6 +1707,7 @@ class HermesDashboardPlugin extends Plugin {
       '',
       `# ${name}`,
       '',
+      ...(this.settings.linkNotes ? [`Day: ${this.linkFor(dateStr, this.dailyPathFor(dateStr))}`, ''] : []),
       '## Agenda',
       '',
       listBlock(o.agenda),
@@ -1674,6 +1726,13 @@ class HermesDashboardPlugin extends Plugin {
       '',
     ].join('\n');
     await this.app.vault.create(path, content);
+    if (this.settings.linkNotes) {
+      await this.linkIntoDaily(
+        dateStr,
+        '## Meetings',
+        `- ${timeStr.slice(0, 2)}:${timeStr.slice(2)} ${this.linkFor(name, path)}`,
+      );
+    }
   }
 
   async captureToInbox(type, text, opts) {
@@ -1724,6 +1783,13 @@ class HermesDashboardPlugin extends Plugin {
       '',
     ].join('\n');
     await this.app.vault.create(path, content);
+    if (this.settings.linkNotes) {
+      await this.linkIntoDaily(
+        dateStr,
+        '## Captures',
+        `- ${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)} ${this.linkFor(name, path)}`,
+      );
+    }
   }
 }
 
