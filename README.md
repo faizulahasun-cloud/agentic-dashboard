@@ -8,6 +8,7 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 
 - ✦ **Hero banner** — animated video (or poster image) with your live clock and today's date / ISO week
 - ＋ **Quick capture** — one-Enter captures for thoughts, ideas and articles; the reflection, to-watch and book chips open a fuller form (context + takeaway, link, author + reading status) and build a structured inbox note with frontmatter (`author`, `status`, `source`) and body sections
+- ＋ **Two ways to add tasks** — the `Task ⚡` chip is quick capture: type one line, hit Enter, it lands in today's daily note; the **＋ Task** button opens the proper form (name, date, priority, repeat) for scheduling ahead
 - **Tasks today** — open tasks from today's daily note plus every task across the vault that is due today or overdue (📅 / ⏳ / 🛫 emoji dates), click to toggle done
 - **Task features from the Tasks ecosystem** — the ＋ Task button opens a rich form (name, date, priority, repeat) so tasks for future days can be scheduled today; completing a task stamps it with a done date ✅; adding one stamps a created date ➕; recurring tasks (🔁 every week, every 3 days, every weekday, `when done`, …) generate their next occurrence automatically on completion; priorities (⏫ 🔼 🔽) are preserved and sort overdue lists; cancelled tasks (`- [-]`) are excluded; `*` and numbered checkboxes are supported
 - **Calendar** — Monday-start month view, dots on days with a daily note, click any day to open/create that daily note
@@ -40,6 +41,7 @@ Download `manifest.json`, `main.js` and `styles.css` from the latest release int
 | Journal folder | `Journal` | Where `YYYY-MM-DD.md` daily notes live |
 | Inbox folder | `Inbox` | Where quick captures are stored |
 | Meetings folder | `Meetings` | Where new meetings are created |
+| Dashboard note | *(empty)* | Name of your dashboard note — new daily notes link to it (empty = no link) |
 | Hero video path | *(empty)* | Video behind the hero (empty → gradient) |
 | Poster (desktop / mobile) | *(empty)* | Fallback image when there is no video |
 | Link notes together | off | Connect daily notes, meetings and captures with links (respects your Files and links format preference) |
@@ -47,6 +49,10 @@ Download `manifest.json`, `main.js` and `styles.css` from the latest release int
 | Auto refresh | `60` s | Background refresh interval (0 = off) |
 
 Point the three folder settings at any folders in your vault and the dashboard adapts to your layout. Daily notes, meetings and captures are created with sensible frontmatter (`type`, `date`, `time`, `tag`) so they stay Dataview-friendly.
+
+### Dashboard note template
+
+Daily notes can link back to a central dashboard note (like the `000 - Dashboard` note in a journaling setup). Copy [`Dashboard.md`](Dashboard.md) from this repo anywhere into your vault, set **Dashboard note** in the plugin settings to that note's name, and every daily note the plugin creates will carry a link to it. Leave the setting empty and daily notes have no link at all.
 
 ### Hero video (optional)
 
@@ -69,7 +75,7 @@ Requires the Obsidian CLI to be enabled (**Settings → General → Command line
 | Command | What it does |
 |---|---|
 | `obsidian agentic-dashboard` | Opens the dashboard |
-| `obsidian agentic-dashboard:add-task text="Call plumber"` | Appends `- [ ] Call plumber` to today's daily note (creates it if missing) |
+| `obsidian agentic-dashboard:add-task text="Call plumber"` | Adds `- [ ] Call plumber ➕ … 📅 …` to today's daily note (created date and due-date stamps included, note created if missing) |
 | `obsidian agentic-dashboard:add-task text="Call plumber" date=2026-11-14` | Adds to that day's daily note (future days created if missing) |
 | `obsidian agentic-dashboard:add-task text="Call plumber" date=2026-11-20 priority=high recurrence="every month"` | Task with priority and repeat rule |
 | `obsidian agentic-dashboard:capture text="Read X" type=idea` | Creates an Inbox note (type: thought/idea/reflection/to-watch/book/article) |
@@ -95,7 +101,7 @@ The plugin registers `obsidian://agentic-dashboard?action=...` — useful for li
 | Capture to inbox | `...?action=capture&text=Read X&type=idea` | Creates an Inbox note |
 | New meeting | `...?action=meeting&title=Design review&date=2026-11-20&time=14:30` | Creates a meeting note |
 | Daily note | `...?action=new-daily` (`&date=` optional) | Creates if missing and opens it |
-| Open a note | `...?action=open-note&path=open code/Journal/2026-11-13.md` | Opens that exact vault path |
+| Open a note | `...?action=open-note&path=Journal/2026-11-13.md` | Opens that exact vault path |
 | Find a note | `...?action=find-note&query=dashboard` | Best-match search, opens the winner |
 | Open dashboard | `...?action=open-dashboard` | Focuses the dashboard |
 
