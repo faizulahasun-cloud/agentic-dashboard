@@ -4,6 +4,8 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 
 **No Dataview, no Templater, no other plugins required.** Works on desktop and mobile. Agent-agnostic: point its folder settings at any vault layout — it doesn't care which agent or workflow feeds your notes.
 
+![Agentic Dashboard](./images/preview.gif)
+
 ## Features
 
 - ✦ **Hero banner** — animated video (or poster image) with your live clock and today's date / ISO week
