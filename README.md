@@ -54,7 +54,7 @@ Point the three folder settings at any folders in your vault and the dashboard a
 
 ### Dashboard note template
 
-Daily notes can link back to a central dashboard note (like the `000 - Dashboard` note in a journaling setup). Copy [`Dashboard.md`](Dashboard.md) from this repo anywhere into your vault, set **Dashboard note** in the plugin settings to that note's name, and every daily note the plugin creates will carry a link to it. Leave the setting empty and daily notes have no link at all.
+Daily notes can link back to a central dashboard note (like the `Agentic Dashboard` note in a journaling setup). Copy [`Dashboard.md`](Dashboard.md) from this repo anywhere into your vault, set **Dashboard note** in the plugin settings to that note's name, and every daily note the plugin creates will carry a link to it. Leave the setting empty and daily notes have no link at all.
 
 ### Hero video (optional)
 
@@ -121,4 +121,4 @@ The theme this dashboard was designed around is also a community theme: [Hermes 
 
 ## License
 
-[MIT](LICENSE) © 2026 Hermes
+[MIT](LICENSE) © 2026 MD Fizul Ahasun
