@@ -419,10 +419,20 @@ class HermesDashboardView extends ItemView {
   async renderAll() {
     const data = await this.collectData();
     if (!this.root || !this.root.isConnected) return;
+    // preserve an in-progress capture draft across re-renders (refresh timer / vault changes)
+    const draft = this.input ? this.input.value : '';
+    const draftFocus = !!(draft && this.input && this.input.ownerDocument.activeElement === this.input);
     this.root.empty();
     this.renderHero(data);
     this.renderActions();
     this.renderCapture();
+    if (draft && this.input) {
+      this.input.value = draft;
+      if (draftFocus) {
+        this.focusInput();
+        try { this.input.setSelectionRange(draft.length, draft.length); } catch (e) { /* ignore */ }
+      }
+    }
     this.renderGrid(data);
     this.renderFooter();
   }
@@ -494,7 +504,7 @@ class HermesDashboardView extends ItemView {
 
     this.input.addEventListener('keydown', (evt) => {
       if (evt.key === 'Enter') { evt.preventDefault(); this.submitCapture(); }
-      else if (evt.key === 'Escape') { evt.preventDefault(); this.resetCapture(); }
+      else if (evt.key === 'Escape') { evt.preventDefault(); this.resetCapture(true); }
     });
 
     const chips = cap.createDiv({ cls: 'hd-chips' });
@@ -506,12 +516,9 @@ class HermesDashboardView extends ItemView {
           this.plugin.openCaptureModal(t.slug);
           return;
         }
-        // clicking a chip selects it as the capture type (plain capture mode)
-        if (this.captureMode !== '__task') {
-          this.activeChip = this.activeChip === t.slug ? null : t.slug;
-        } else {
-          this.activeChip = t.slug;
-        }
+        // chips are standalone: tapping always selects that type (no toggle-off, no silent fallback)
+        this.captureMode = null;
+        this.activeChip = t.slug;
         this.refreshCaptureUI();
         this.focusInput();
       });
@@ -533,10 +540,10 @@ class HermesDashboardView extends ItemView {
   refreshCaptureUI() {
     if (!this.input) return;
     let placeholder = 'Capture a thought to Inbox… (Enter to save, Esc to clear)';
-    if (this.captureMode === '__task') placeholder = 'Add task to today…';
+    if (this.captureMode === '__task') placeholder = 'Add task to today… (Enter to save, Esc to clear)';
     else if (this.activeChip) {
       const t = CAPTURE_TYPES.find((x) => x.slug === this.activeChip);
-      if (t) placeholder = `Capture ${t.label.replace(/\s\S+$/, '')} to Inbox…`;
+      if (t) placeholder = `Capture ${t.label.replace(/\s\S+$/, '')} to Inbox… (Enter to save, Esc to clear)`;
     }
     this.input.placeholder = placeholder;
 
@@ -551,9 +558,9 @@ class HermesDashboardView extends ItemView {
     if (this.input) this.input.focus();
   }
 
-  resetCapture() {
+  resetCapture(keepChip) {
     this.captureMode = null;
-    this.activeChip = null;
+    if (!keepChip) this.activeChip = null;
     if (this.input) this.input.value = '';
     this.refreshCaptureUI();
   }
@@ -572,7 +579,7 @@ class HermesDashboardView extends ItemView {
         await this.plugin.captureToInbox(type, raw);
         new Notice('Saved to inbox ✓');
       }
-      this.resetCapture();
+      this.resetCapture(true);
       this.plugin.requestRefresh(450);
     } catch (e) {
       console.error('[agentic-dashboard] capture failed', e);
