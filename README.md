@@ -8,7 +8,8 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 
 ## Features
 
-- ✦ **Hero banner** — animated video (or poster image) with your live clock and today's date / ISO week
+- ✦ **Hero banner** — animated video (or poster image) with your live clock and today's date / ISO week, plus an optional live weather chip (city you choose, refreshed with the dashboard)
+- 🌤️ **Weather** — optional chip beside the clock: pick any city, temperature in °C or °F, updated on the plugin's auto-refresh (Open-Meteo, no API key, off by default); shows a cached/offline indicator if the network is unavailable
 - ＋ **Quick capture** — one-Enter captures for thoughts, ideas and articles; chips are standalone: tap one and it stays selected (also across saves), tap another to switch — no silent reset; the reflection, to-watch and book chips open a fuller form (context + takeaway, link, author + reading status) and build a structured inbox note with frontmatter (`author`, `status`, `source`) and body sections
 - ＋ **Two ways to add tasks** — the `Task ⚡` chip is quick capture: type one line, hit Enter, it lands in today's daily note; the **＋ Task** button opens the proper form (name, date, priority, repeat) for scheduling ahead
 - **Tasks today** — open tasks from today's daily note plus every task across the vault that is due today or overdue (📅 / ⏳ / 🛫 emoji dates), click to toggle done
@@ -48,7 +49,10 @@ Download `manifest.json`, `main.js` and `styles.css` from the latest release int
 | Poster (desktop / mobile) | *(empty)* | Fallback image when there is no video |
 | Link notes together | off | Connect daily notes, meetings and captures with links (respects your Files and links format preference) |
 | Max tasks shown | `18` | Cap for the Tasks today card |
-| Auto refresh | `60` s | Background refresh interval (0 = off) |
+| Auto refresh | `60` s | Background refresh interval for the dashboard and weather (0 = off) |
+| Show weather | off | Live weather chip beside the clock (Open-Meteo, no API key) |
+| Weather city | *(empty)* | City name to fetch weather for |
+| Weather units | `Celsius` | Celsius (°C) or Fahrenheit (°F) |
 
 Point the three folder settings at any folders in your vault and the dashboard adapts to your layout. Daily notes, meetings and captures are created with sensible frontmatter (`type`, `date`, `time`, `tag`) so they stay Dataview-friendly.
 
