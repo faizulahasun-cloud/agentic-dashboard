@@ -1286,6 +1286,24 @@ class HermesDashboardSettingTab extends PluginSettingTab {
         desc: 'How often dashboard data refreshes (0 disables).',
         control: { type: 'number', key: 'refreshSeconds', defaultValue: D.refreshSeconds, min: 0, max: 3600 },
       },
+      {
+        name: 'Show weather',
+        desc: 'Show live temperature beside the clock in the hero (Open-Meteo, no API key).',
+        control: { type: 'toggle', key: 'weatherEnabled', defaultValue: D.weatherEnabled },
+      },
+      {
+        name: 'Weather city',
+        desc: 'City name to fetch weather for (e.g. Dhaka).',
+        control: { type: 'text', key: 'weatherCity', defaultValue: D.weatherCity },
+      },
+      {
+        name: 'Weather units',
+        desc: 'Temperature unit for the weather chip.',
+        control: { type: 'dropdown', key: 'weatherUnits', defaultValue: D.weatherUnits, options: [
+          { value: 'metric', label: 'Celsius (°C)' },
+          { value: 'imperial', label: 'Fahrenheit (°F)' },
+        ]},
+      },
     ];
   }
 
@@ -1304,6 +1322,10 @@ class HermesDashboardSettingTab extends PluginSettingTab {
       this.plugin.settings[key] = value;
     }
     await this.plugin.saveSettings();
+    if (key === 'weatherEnabled' || key === 'weatherCity' || key === 'weatherUnits') {
+      this.plugin.weather.data = null;
+      this.plugin.refreshViews(400);
+    }
   }
 
   display() {
