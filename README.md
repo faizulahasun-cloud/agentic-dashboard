@@ -98,22 +98,22 @@ obsidian vault="Ai diary" agentic-dashboard:add-task text="Water the plants"
 
 ### obsidian:// URI (desktop & mobile)
 
-The plugin registers `obsidian://agentic-dashboard?action=...` — useful for links inside notes, iOS Shortcuts, and environments without a terminal:
+The plugin registers `obsidian://agentic-dashboard?op=...` — useful for links inside notes, iOS Shortcuts, and environments without a terminal:
 
 | Action | URL | What it does |
 |---|---|---|
-| Add task | `...?action=add-task&text=Call plumber` | Appends to today's daily note |
-| Add task on a date | `...?action=add-task&text=Call plumber&date=2026-11-14&priority=high&recurrence=every week` | Task with date, priority and repeat |
-| Capture to inbox | `...?action=capture&text=Read X&type=idea` | Creates an Inbox note |
-| New meeting | `...?action=meeting&title=Design review&date=2026-11-20&time=14:30` | Creates a meeting note |
-| Daily note | `...?action=new-daily` (`&date=` optional) | Creates if missing and opens it |
-| Open a note | `...?action=open-note&path=Journal/2026-11-13.md` | Opens that exact vault path |
-| Find a note | `...?action=find-note&query=dashboard` | Best-match search, opens the winner |
-| Open dashboard | `...?action=open-dashboard` | Focuses the dashboard |
+| Add task | `...op=add-task&text=Call plumber` | Appends to today's daily note |
+| Add task on a date | `...op=add-task&text=Call plumber&date=2026-11-14&priority=high&recurrence=every week` | Task with date, priority and repeat |
+| Capture to inbox | `...op=capture&text=Read X&type=idea` | Creates an Inbox note |
+| New meeting | `...op=meeting&title=Design review&date=2026-11-20&time=14:30` | Creates a meeting note |
+| Daily note | `...op=new-daily` (`&date=` optional) | Creates if missing and opens it |
+| Open a note | `...op=open-note&path=Journal/2026-11-13.md` | Opens that exact vault path |
+| Find a note | `...op=find-note&query=dashboard` | Best-match search, opens the winner |
+| Open dashboard | `...op=open-dashboard` | Focuses the dashboard |
 
-Base: `obsidian://agentic-dashboard?action=<action>&...`. Spaces in parameters should be URL-encoded (`%20`). URI actions confirm with an in-app notice.
+Base: `obsidian://agentic-dashboard?op=<action>&...`. Spaces in parameters should be URL-encoded (`%20`). URI actions confirm with an in-app notice.
 
-Action names are forgiving — agents that guess `create-meeting`, `new_meeting` or `schedule-meeting` still land on `meeting`, and `name`/`subject` work in place of `title`, `start` in place of `time`. On iOS (Shortcuts, on-device agents) percent-encode every value: `%20` space, `%0A` newline, `%26` for `&` — one raw `&` splits the parameter list and the title or date silently disappears.
+**Use `op=`, not `action=`.** Obsidian overwrites the `action` parameter with the protocol handler id (`agentic-dashboard`) before the plugin sees it, so `action=meeting` never reaches the handler. Older links that still say `action=meeting` keep working through parameter inference, but `op=` is the reliable form.
 
 Agents can also just write notes directly (plain file edits) — the dashboard listens to vault events and refreshes itself.
 
@@ -122,7 +122,7 @@ Agents can also just write notes directly (plain file edits) — the dashboard l
 Add `x-success` and/or `x-error` and the plugin opens that URL back when the action finishes, so a Shortcut or on-device agent gets a real confirmation instead of guessing from a notice:
 
 ```
-obsidian://agentic-dashboard?action=meeting&title=Design%20review&time=14%3A30
+obsidian://agentic-dashboard?op=meeting&title=Design%20review&time=14%3A30
   &x-success=shortcuts%3A%2F%2Frun-shortcut%3Fname%3DAfterMeeting
   &x-error=shortcuts%3A%2F%2Frun-shortcut%3Fname%3DOnFailure
 ```
