@@ -65,14 +65,16 @@ const WEATHER_ICONS = {
   "sleet": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 512 512\"><defs><linearGradient id=\"a\" x1=\"99.5\" x2=\"232.6\" y1=\"30.7\" y2=\"261.4\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f3f7fe\"/><stop offset=\".5\" stop-color=\"#f3f7fe\"/><stop offset=\"1\" stop-color=\"#deeafb\"/></linearGradient><linearGradient id=\"b\" x1=\"1399.3\" x2=\"1408.7\" y1=\"-1137.3\" y2=\"-1112.7\" gradientTransform=\"rotate(-9 8016.182 8229.021)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#0b65ed\"/><stop offset=\".5\" stop-color=\"#0a5ad4\"/><stop offset=\"1\" stop-color=\"#0950bc\"/></linearGradient><linearGradient xlink:href=\"#b\" id=\"c\" x1=\"1454.6\" x2=\"1464\" y1=\"-1128.6\" y2=\"-1104\"/><linearGradient xlink:href=\"#b\" id=\"d\" x1=\"1509.9\" x2=\"1519.3\" y1=\"-1119.8\" y2=\"-1095.2\"/><linearGradient id=\"e\" x1=\"11.4\" x2=\"32.8\" y1=\"5.9\" y2=\"43.1\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#86c3db\"/><stop offset=\".5\" stop-color=\"#86c3db\"/><stop offset=\"1\" stop-color=\"#5eafcf\"/></linearGradient><linearGradient xlink:href=\"#e\" id=\"f\" x1=\"67.4\" x2=\"88.8\" y1=\"5.9\" y2=\"43.1\"/><linearGradient xlink:href=\"#e\" id=\"g\" x1=\"123.4\" x2=\"144.8\" y1=\"5.9\" y2=\"43.1\"/><symbol id=\"h\" viewBox=\"0 0 350 222\"><path fill=\"url(#a)\" stroke=\"#e6effc\" stroke-miterlimit=\"10\" stroke-width=\"6\" d=\"m291 107-2.5.1A83.9 83.9 0 00135.6 43 56 56 0 0051 91a56.6 56.6 0 00.8 9A60 60 0 0063 219l4-.2v.2h224a56 56 0 000-112Z\"/></symbol><symbol id=\"j\" overflow=\"visible\" viewBox=\"0 0 156.2 49\"><g><path fill=\"url(#e)\" stroke=\"#86c3db\" stroke-miterlimit=\"10\" d=\"m41.7 31-5.8-3.3a13.7 13.7 0 000-6.5l5.8-3.2a4 4 0 001.5-5.5 4 4 0 00-5.6-1.5l-5.8 3.3a13.6 13.6 0 00-2.6-2 13.8 13.8 0 00-3-1.3V4.5a4 4 0 00-8.1 0v6.6a14.3 14.3 0 00-5.7 3.2L6.6 11A4 4 0 001 12.5 4 4 0 002.5 18l5.8 3.3a13.7 13.7 0 000 6.5L2.5 31A4 4 0 001 36.5a4 4 0 003.5 2 4 4 0 002-.5l5.8-3.3a13.6 13.6 0 002.6 2 13.8 13.8 0 003 1.2v6.6a4 4 0 008.2 0v-6.6a14.2 14.2 0 005.6-3.2l6 3.3a4 4 0 002 .5 4 4 0 003.4-2 4 4 0 00-1.4-5.5ZM19 29.7a6 6 0 01-2.3-8.2 6.1 6.1 0 015.3-3 6.2 6.2 0 013 .8 6 6 0 012.2 8.2 6.1 6.1 0 01-8.2 2.2Z\" opacity=\"0\"><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"6s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 24 24; 360 24 24\"/><animate id=\"t1\" attributeName=\"opacity\" begin=\"0s; t1.end+1s\" dur=\"2s\" keyTimes=\"0; .17; .83; 1\" values=\"0; 1; 1; 0\"/></path><animateTransform id=\"s1\" additive=\"sum\" attributeName=\"transform\" begin=\"0s; s1.end+1s\" dur=\"2s\" type=\"translate\" values=\"0 -36; 0 92;\"/></g><g><path fill=\"url(#f)\" stroke=\"#86c3db\" stroke-miterlimit=\"10\" d=\"m97.7 31-5.8-3.3a13.7 13.7 0 000-6.5l5.8-3.2a4 4 0 001.5-5.5 4 4 0 00-5.6-1.5l-5.8 3.3a13.6 13.6 0 00-2.6-2 13.8 13.8 0 00-3-1.3V4.5a4 4 0 00-8.1 0v6.6a14.3 14.3 0 00-5.7 3.2L62.6 11a4 4 0 00-5.6 1.5 4 4 0 001.5 5.5l5.8 3.3a13.7 13.7 0 000 6.5L58.5 31a4 4 0 00-1.5 5.5 4 4 0 003.5 2 4 4 0 002-.5l5.8-3.3a13.6 13.6 0 002.7 2 13.8 13.8 0 003 1.2v6.6a4 4 0 008 0v-6.6a14.2 14.2 0 005.7-3.2l6 3.3a4 4 0 002 .5 4 4 0 003.4-2 4 4 0 00-1.4-5.5ZM75 29.7a6 6 0 01-2.3-8.2 6.1 6.1 0 015.3-3 6.2 6.2 0 013 .8 6 6 0 012.2 8.2 6.1 6.1 0 01-8.2 2.2Z\" opacity=\"0\"><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"6s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 80 24; 360 80 24\"/><animate id=\"t2\" attributeName=\"opacity\" begin=\"-.83s; t2.end+1s\" dur=\"2s\" keyTimes=\"0; .17; .83; 1\" values=\"0; 1; 1; 0\"/></path><animateTransform id=\"s2\" additive=\"sum\" attributeName=\"transform\" begin=\"-.83s; s2.end+1s\" dur=\"2s\" type=\"translate\" values=\"0 -36; 0 92;\"/></g><g><path fill=\"url(#g)\" stroke=\"#86c3db\" stroke-miterlimit=\"10\" d=\"m153.7 31-5.8-3.3a13.7 13.7 0 000-6.5l5.8-3.2a4 4 0 001.5-5.5 4 4 0 00-5.6-1.5l-5.8 3.3a13.6 13.6 0 00-2.6-2 13.8 13.8 0 00-3-1.3V4.5a4 4 0 00-8.1 0v6.6a14.3 14.3 0 00-5.7 3.2l-5.8-3.3a4 4 0 00-5.6 1.5 4 4 0 001.5 5.5l5.8 3.3a13.7 13.7 0 000 6.5l-5.8 3.2a4 4 0 00-1.5 5.5 4 4 0 003.5 2 4 4 0 002-.5l5.8-3.3a13.6 13.6 0 002.7 2 13.8 13.8 0 003 1.2v6.6a4 4 0 008 0v-6.6a14.2 14.2 0 005.7-3.2l5.8 3.3a4 4 0 002 .5 4 4 0 003.5-2 4 4 0 00-1.3-5.5ZM131 29.7a6 6 0 01-2.3-8.2 6.1 6.1 0 015.3-3 6.2 6.2 0 013 .8 6 6 0 012.2 8.2 6.1 6.1 0 01-8.2 2.2Z\" opacity=\"0\"><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"6s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"0 136 24; 360 136 24\"/><animate id=\"t3\" attributeName=\"opacity\" begin=\".83s; t3.end+1s\" dur=\"2s\" keyTimes=\"0; .17; .83; 1\" values=\"0; 1; 1; 0\"/></path><animateTransform id=\"s3\" additive=\"sum\" attributeName=\"transform\" begin=\".83s; s3.end+1s\" dur=\"2s\" type=\"translate\" values=\"0 -36; 0 92;\"/></g></symbol><symbol id=\"i\" overflow=\"visible\" viewBox=\"0 0 112 12\"><path fill=\"url(#b)\" stroke=\"#0a5ad4\" stroke-miterlimit=\"10\" d=\"M8 12a4 4 0 01-4-4V4a4 4 0 018 0v4a4 4 0 01-4 4Z\" opacity=\"0\"><animateTransform id=\"x1\" additive=\"sum\" attributeName=\"transform\" begin=\"0s; x1.end+.5s\" dur=\"1s\" type=\"translate\" values=\"0 -12; 0 36\"/><animate id=\"y1\" attributeName=\"opacity\" begin=\"0s; y1.end+.5s\" dur=\"1s\" keyTimes=\"0; .25; 1\" values=\"0; 1; 0\"/></path><path fill=\"url(#c)\" stroke=\"#0a5ad4\" stroke-miterlimit=\"10\" d=\"M56 12a4 4 0 01-4-4V4a4 4 0 018 0v4a4 4 0 01-4 4Z\" opacity=\"0\"><animateTransform id=\"x2\" additive=\"sum\" attributeName=\"transform\" begin=\".67s; x2.end+.5s\" dur=\"1s\" type=\"translate\" values=\"0 -12; 0 36\"/><animate id=\"y2\" attributeName=\"opacity\" begin=\".67s; y2.end+.5s\" dur=\"1s\" keyTimes=\"0; .25; 1\" values=\"0; 1; 0\"/></path><path fill=\"url(#d)\" stroke=\"#0a5ad4\" stroke-miterlimit=\"10\" d=\"M104 12a4 4 0 01-4-4V4a4 4 0 018 0v4a4 4 0 01-4 4Z\" opacity=\"0\"><animateTransform id=\"x3\" additive=\"sum\" attributeName=\"transform\" begin=\".34s; x3.end+.5s\" dur=\"1s\" type=\"translate\" values=\"0 -12; 0 36\"/><animate id=\"y3\" attributeName=\"opacity\" begin=\".34s; y3.end+.5s\" dur=\"1s\" keyTimes=\"0; .25; 1\" values=\"0; 1; 0\"/></path></symbol></defs><use xlink:href=\"#h\" width=\"350\" height=\"222\" transform=\"translate(81 145)\"/><use xlink:href=\"#j\" width=\"156.2\" height=\"49\" transform=\"translate(177.9 337.5)\"/><use xlink:href=\"#i\" width=\"112\" height=\"12\" transform=\"translate(200 373.5)\"/></svg>",
   "thunderstorms": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 512 512\"><defs><linearGradient id=\"a\" x1=\"99.5\" x2=\"232.6\" y1=\"30.7\" y2=\"261.4\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f3f7fe\"/><stop offset=\".5\" stop-color=\"#f3f7fe\"/><stop offset=\"1\" stop-color=\"#deeafb\"/></linearGradient><linearGradient id=\"b\" x1=\"8.7\" x2=\"80.9\" y1=\"17.1\" y2=\"142.1\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f7b23b\"/><stop offset=\".5\" stop-color=\"#f7b23b\"/><stop offset=\"1\" stop-color=\"#f59e0b\"/></linearGradient><symbol id=\"c\" viewBox=\"0 0 350 222\"><path fill=\"url(#a)\" stroke=\"#e6effc\" stroke-miterlimit=\"10\" stroke-width=\"6\" d=\"m291 107-2.5.1A83.9 83.9 0 00135.6 43 56 56 0 0051 91a56.6 56.6 0 00.8 9A60 60 0 0063 219l4-.2v.2h224a56 56 0 000-112Z\"/></symbol><symbol id=\"d\" viewBox=\"0 0 102.7 186.8\"><path fill=\"url(#b)\" stroke=\"#f6a823\" stroke-miterlimit=\"10\" stroke-width=\"4\" d=\"m34.8 2-32 96h32l-16 80 80-112h-48l32-64h-48z\"><animate id=\"x1\" attributeName=\"opacity\" begin=\"0s; x1.end+.67s\" dur=\"1.33s\" keyTimes=\"0; .38; .5; .63; .75; .86; .94; 1\" values=\"1; 1; 0; 1; 0; 1; 0; 1\"/></path></symbol></defs><use xlink:href=\"#c\" width=\"350\" height=\"222\" transform=\"translate(81 145)\"/><use xlink:href=\"#d\" width=\"102.7\" height=\"186.7\" transform=\"translate(205.23 291)\"/></svg>",
   "thunderstorms-rain": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 512 512\"><defs><linearGradient id=\"a\" x1=\"99.5\" x2=\"232.6\" y1=\"30.7\" y2=\"261.4\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f3f7fe\"/><stop offset=\".5\" stop-color=\"#f3f7fe\"/><stop offset=\"1\" stop-color=\"#deeafb\"/></linearGradient><linearGradient id=\"b\" x1=\"8.7\" x2=\"80.9\" y1=\"17.1\" y2=\"142.1\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f7b23b\"/><stop offset=\".5\" stop-color=\"#f7b23b\"/><stop offset=\"1\" stop-color=\"#f59e0b\"/></linearGradient><linearGradient id=\"c\" x1=\"1381.3\" x2=\"1399.5\" y1=\"-1144.7\" y2=\"-1097.4\" gradientTransform=\"rotate(-9 8002.567 8233.063)\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#0b65ed\"/><stop offset=\".5\" stop-color=\"#0a5ad4\"/><stop offset=\"1\" stop-color=\"#0950bc\"/></linearGradient><linearGradient xlink:href=\"#c\" id=\"d\" x1=\"1436.7\" x2=\"1454.9\" y1=\"-1137\" y2=\"-1089.7\" gradientTransform=\"rotate(-9 8009.537 8233.037)\"/><linearGradient xlink:href=\"#c\" id=\"e\" x1=\"1492.1\" x2=\"1510.3\" y1=\"-1129.3\" y2=\"-1082.1\" gradientTransform=\"rotate(-9 8016.566 8233.078)\"/><symbol id=\"f\" viewBox=\"0 0 350 222\"><path fill=\"url(#a)\" stroke=\"#e6effc\" stroke-miterlimit=\"10\" stroke-width=\"6\" d=\"m291 107-2.5.1A83.9 83.9 0 00135.6 43 56 56 0 0051 91a56.6 56.6 0 00.8 9A60 60 0 0063 219l4-.2v.2h224a56 56 0 000-112Z\"/></symbol><symbol id=\"g\" overflow=\"visible\" viewBox=\"0 0 129 57\"><path fill=\"url(#c)\" stroke=\"#0a5ad4\" stroke-miterlimit=\"10\" d=\"M8.5 56.5a8 8 0 01-8-8v-40a8 8 0 0116 0v40a8 8 0 01-8 8Z\" opacity=\"0\"><animateTransform id=\"x1\" additive=\"sum\" attributeName=\"transform\" begin=\"0s; x1.end+.33s\" dur=\".67s\" type=\"translate\" values=\"0 -60; 0 60\"/><animate id=\"y1\" attributeName=\"opacity\" begin=\"0s; y1.end+.33s\" dur=\".67s\" keyTimes=\"0; .25; 1\" values=\"0; 1; 0\"/></path><path fill=\"url(#d)\" stroke=\"#0a5ad4\" stroke-miterlimit=\"10\" d=\"M64.5 56.5a8 8 0 01-8-8v-40a8 8 0 0116 0v40a8 8 0 01-8 8Z\" opacity=\"0\"><animateTransform id=\"x2\" additive=\"sum\" attributeName=\"transform\" begin=\".33s; x2.end+.33s\" dur=\".67s\" type=\"translate\" values=\"0 -60; 0 60\"/><animate id=\"y2\" attributeName=\"opacity\" begin=\".33s; y2.end+.33s\" dur=\".67s\" keyTimes=\"0; .25; 1\" values=\"0; 1; 0\"/></path><path fill=\"url(#e)\" stroke=\"#0a5ad4\" stroke-miterlimit=\"10\" d=\"M120.5 56.5a8 8 0 01-8-8v-40a8 8 0 0116 0v40a8 8 0 01-8 8Z\" opacity=\"0\"><animateTransform id=\"x3\" additive=\"sum\" attributeName=\"transform\" begin=\"-.33s; x3.end+.33s\" dur=\".67s\" type=\"translate\" values=\"0 -60; 0 60\"/><animate id=\"y3\" attributeName=\"opacity\" begin=\"-.33s; y3.end+.33s\" dur=\".67s\" keyTimes=\"0; .25; 1\" values=\"0; 1; 0\"/></path></symbol><symbol id=\"h\" viewBox=\"0 0 102.7 186.8\"><path fill=\"url(#b)\" stroke=\"#f6a823\" stroke-miterlimit=\"10\" stroke-width=\"4\" d=\"m34.8 2-32 96h32l-16 80 80-112h-48l32-64h-48z\"><animate id=\"x1\" attributeName=\"opacity\" begin=\"0s; x1.end+.67s\" dur=\"1.33s\" keyTimes=\"0; .38; .5; .63; .75; .86; .94; 1\" values=\"1; 1; 0; 1; 0; 1; 0; 1\"/></path></symbol></defs><use xlink:href=\"#f\" width=\"350\" height=\"222\" transform=\"translate(81 145)\"/><use xlink:href=\"#g\" width=\"129\" height=\"57\" transform=\"translate(191.5 343.5)\"/><use xlink:href=\"#h\" width=\"102.7\" height=\"186.7\" transform=\"translate(205.23 291)\"/></svg>",
+  "clear-night": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 512 512\"><defs><linearGradient id=\"a\" x1=\"54.3\" x2=\"187.2\" y1=\"29\" y2=\"259.1\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#86c3db\"/><stop offset=\".5\" stop-color=\"#86c3db\"/><stop offset=\"1\" stop-color=\"#5eafcf\"/></linearGradient><symbol id=\"b\" overflow=\"visible\" viewBox=\"0 0 270 270\"><path fill=\"url(#a)\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"6\" d=\"M252.3 168.6A133.4 133.4 0 01118 36.2 130.5 130.5 0 01122.5 3 133 133 0 003 134.6C3 207.7 63 267 137.2 267c62.5 0 114.8-42.2 129.8-99.2a135.6 135.6 0 01-14.8.8Z\"><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"6s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"-15 135 135; 9 135 135; -15 135 135\"/></path></symbol></defs><use xlink:href=\"#b\" width=\"270\" height=\"270\" transform=\"translate(121 121)\"/></svg>",
+  "partly-cloudy-night": "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 512 512\"><defs><symbol id=\"d\" viewBox=\"0 0 172 172\"><path fill=\"url(#b)\" stroke=\"#72b9d5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" stroke-width=\"4\" d=\"M160.6 107.4a84.8 84.8 0 01-85.4-84.3A83.3 83.3 0 0178 2 84.7 84.7 0 002 85.7 84.8 84.8 0 0087.4 170a85.2 85.2 0 0082.6-63.1 88 88 0 01-9.4.5Z\"><animateTransform additive=\"sum\" attributeName=\"transform\" dur=\"6s\" repeatCount=\"indefinite\" type=\"rotate\" values=\"-15 86 86; 9 86 86; -15 86 86\"/></path></symbol><symbol id=\"e\" viewBox=\"0 0 350 222\"><path fill=\"url(#a)\" stroke=\"#e6effc\" stroke-miterlimit=\"10\" stroke-width=\"6\" d=\"m291 107-2.5.1A83.9 83.9 0 00135.6 43 56 56 0 0051 91a56.6 56.6 0 00.8 9A60 60 0 0063 219l4-.2v.2h224a56 56 0 000-112Z\"/></symbol><symbol id=\"c\" viewBox=\"0 0 351 246\"><use xlink:href=\"#d\" width=\"172\" height=\"172\"/><use xlink:href=\"#e\" width=\"350\" height=\"222\" transform=\"translate(1 24)\"/></symbol><linearGradient id=\"a\" x1=\"99.5\" x2=\"232.6\" y1=\"30.7\" y2=\"261.4\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#f3f7fe\"/><stop offset=\".5\" stop-color=\"#f3f7fe\"/><stop offset=\"1\" stop-color=\"#deeafb\"/></linearGradient><linearGradient id=\"b\" x1=\"34.7\" x2=\"119.2\" y1=\"18.6\" y2=\"165\" gradientUnits=\"userSpaceOnUse\"><stop offset=\"0\" stop-color=\"#86c3db\"/><stop offset=\".5\" stop-color=\"#86c3db\"/><stop offset=\"1\" stop-color=\"#5eafcf\"/></linearGradient></defs><use xlink:href=\"#c\" width=\"351\" height=\"246\" transform=\"translate(80 121)\"/></svg>",
   "not-available": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\"><path fill=\"#374251\" d=\"M174.6 264.7v-62.3h27.7v107.2H174l-37.2-62v62H109V202.3h27.9Zm68.8 44.9h-27.1l44.6-107.3H288Zm159.6 0h-29.7l-6-18.3h-36.2l-6 18.3h-29.5l39.1-107.3h29.7ZM342.7 256l-4.8 14.6h22.8l-4.9-14.6-6.6-22.4Z\"/></svg>",
 };
 
 // Open-Meteo WMO weather codes → icon + label
 const WEATHER_CODES = {
-  0: { icon: "clear-day", label: "Clear" },
-  1: { icon: "clear-day", label: "Mostly clear" },
-  2: { icon: "partly-cloudy-day", label: "Partly cloudy" },
+  0: { icon: "clear-day", night: "clear-night", label: "Clear" },
+  1: { icon: "clear-day", night: "clear-night", label: "Mostly clear" },
+  2: { icon: "partly-cloudy-day", night: "partly-cloudy-night", label: "Partly cloudy" },
   3: { icon: "overcast", label: "Overcast" },
   45: { icon: "fog", label: "Fog" },
   48: { icon: "fog", label: "Freezing fog" },
@@ -1536,7 +1538,7 @@ class HermesDashboardPlugin extends Plugin {
         return null;
       }
       const unit = s.weatherUnits === 'imperial' ? 'fahrenheit' : 'celsius';
-      const url = `https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current=temperature_2m,weather_code&temperature_unit=${unit}&timezone=auto`;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${geo.lat}&longitude=${geo.lon}&current=temperature_2m,weather_code,is_day&temperature_unit=${unit}&timezone=auto`;
       const res = await requestUrl({ url, headers: { accept: 'application/json' } });
       const cur = res.json && res.json.current;
       if (!cur || typeof cur.temperature_2m !== 'number') {
@@ -1544,12 +1546,13 @@ class HermesDashboardPlugin extends Plugin {
         return this.weather.data;
       }
       const w = WEATHER_CODES[cur.weather_code] || { icon: 'not-available', label: '' };
+      const isNight = Number(cur.is_day) === 0;
       this.weather.data = {
         temp: Math.round(cur.temperature_2m),
         unit: s.weatherUnits === 'imperial' ? '°F' : '°C',
         q: String(s.weatherCity).trim(),
         city: geo.name,
-        icon: w.icon,
+        icon: isNight && w.night ? w.night : w.icon,
         label: w.label,
         stale: false,
       };
@@ -1718,43 +1721,105 @@ class HermesDashboardPlugin extends Plugin {
     });
   }
 
+  /** Agents phrase actions differently (create-meeting, new_meeting, schedule meeting…). */
+  canonicalAction(raw) {
+    const key = String(raw || '')
+      .toLowerCase()
+      .trim()
+      .replace(/^obsidian[:\/]*/, '')
+      .replace(/[_\s]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    const aliases = {
+      'create-meeting': 'meeting',
+      'new-meeting': 'meeting',
+      'add-meeting': 'meeting',
+      'make-meeting': 'meeting',
+      'schedule-meeting': 'meeting',
+      'meeting-note': 'meeting',
+      'meetings': 'meeting',
+      'create-task': 'add-task',
+      'new-task': 'add-task',
+      'add-todo': 'add-task',
+      'addtask': 'add-task',
+      'task': 'add-task',
+      'todo': 'add-task',
+      'quick-capture': 'capture',
+      'capture-note': 'capture',
+      'create-note': 'capture',
+      'new-note': 'capture',
+      'inbox': 'capture',
+      'note': 'capture',
+      'daily-note': 'new-daily',
+      'daily': 'new-daily',
+      'today': 'new-daily',
+      'open': 'open-note',
+      'note-open': 'open-note',
+      'find': 'find-note',
+      'search': 'find-note',
+      'dashboard': 'open-dashboard',
+      'home': 'open-dashboard',
+    };
+    return aliases[key] || key;
+  }
+
+  /** First non-empty value among alternative parameter names. */
+  pickParam(params, names) {
+    for (const n of names) {
+      const v = params && params[n];
+      if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+    }
+    return '';
+  }
+
   async handleAgentAction(params) {
-    const action = String(params.action || '').toLowerCase().trim();
-    const text = String(params.text || '').trim();
-    const title = String(params.title || text || '').trim();
+    const rawAction = String(params.action || '').toLowerCase().trim();
+    const action = this.canonicalAction(rawAction);
+    const text = this.pickParam(params, ['text', 'task', 'todo', 'body', 'content']);
+    const title = this.pickParam(params, ['title', 'name', 'subject']) || text;
+    const callbacks = this.callbackUrls(params);
     const open = async (file) => {
       await this.app.workspace.getLeaf('tab').openFile(file);
       new Notice(`Opened ${file.basename} ✓`);
+      return file;
+    };
+    const need = (usage) => {
+      this.agentHelp(action, usage);
+      throw Object.assign(new Error(`${action} needs ${usage}`), { code: 'missing_parameter', silent: true });
     };
     try {
+      let result = {};
       switch (action) {
         case 'open-dashboard':
           await this.activateView();
           new Notice('Agentic dashboard opened ✓');
-          return;
+          result = { name: 'dashboard' };
+          break;
         case 'add-task': {
-          if (!text) return this.agentHelp('add-task', 'text=Buy milk (&date=YYYY-MM-DD &priority=high &recurrence=every week optional)');
-          const dateStr = this.normalizeDate(params.date);
-          await this.addTaskToDaily(text, dateStr, {
+          if (!text) need('text=Buy milk (&date=YYYY-MM-DD &priority=high &recurrence=every week optional)');
+          const dateStr = this.normalizeDate(this.pickParam(params, ['date', 'day', 'when']));
+          const file = await this.addTaskToDaily(text, dateStr, {
             priority: params.priority,
             recurrence: params.recurrence,
           });
           new Notice(`Task added to ${dateStr} ✓`);
           this.refreshViews(400);
-          return;
+          result = this.fileResult(file, { date: dateStr, task: sanitizeName(text) });
+          break;
         }
         case 'capture': {
-          if (!text) return this.agentHelp('capture', 'text=Idea about X (&type=thought|idea|reflection|to-watch|book|article)');
+          if (!text) need('text=Idea about X (&type=thought|idea|reflection|to-watch|book|article)');
           const type = String(params.type || 'thought').trim() || 'thought';
-          await this.captureToInbox(type, text, params);
+          const file = await this.captureToInbox(type, text, params);
           new Notice('Saved to inbox ✓');
           this.refreshViews(400);
-          return;
+          result = this.fileResult(file, { type: slugify(type) });
+          break;
         }
         case 'meeting': {
-          if (!title) return this.agentHelp('meeting', 'title=Design review (&date=YYYY-MM-DD &time=HH:mm &agenda=… optional)');
-          await this.createMeeting(title, params.time, {
-            date: params.date,
+          if (!title) need('title=Design review (&date=YYYY-MM-DD &time=HH:mm &agenda=… optional)');
+          const file = await this.createMeeting(title, this.pickParam(params, ['time', 'start', 'starttime', 'at']), {
+            date: this.pickParam(params, ['date', 'day', 'when']),
             agenda: params.agenda,
             notes: params.notes,
             decisions: params.decisions,
@@ -1762,33 +1827,115 @@ class HermesDashboardPlugin extends Plugin {
           });
           new Notice('Meeting created ✓');
           this.refreshViews(400);
-          return;
+          result = this.fileResult(file, { title: sanitizeName(title) });
+          break;
         }
         case 'new-daily': {
-          const dateStr = this.normalizeDate(params.date);
-          await this.openOrCreateDaily(dateStr);
+          const dateStr = this.normalizeDate(this.pickParam(params, ['date', 'day', 'when']));
+          const file = await this.openOrCreateDaily(dateStr);
           new Notice(`Daily note ready: ${dateStr} ✓`);
-          return;
+          result = this.fileResult(file, { date: dateStr });
+          break;
         }
         case 'open-note': {
           const p = String(params.path || '').trim();
-          if (!p) return this.agentHelp('open-note', 'path=Journal/2026-11-13.md');
+          if (!p) need('path=Journal/2026-11-13.md');
           const f = this.app.vault.getAbstractFileByPath(p);
-          if (f instanceof TFile && f.extension === 'md') return void (await open(f));
-          return this.findAndOpenNote(p);
+          if (f instanceof TFile && f.extension === 'md') {
+            result = this.fileResult(await open(f));
+            break;
+          }
+          const found = this.findAndOpenNote(p);
+          if (!found) throw Object.assign(new Error(`No note matches "${p}"`), { code: 'note_not_found' });
+          result = this.fileResult(found);
+          break;
         }
         case 'find-note': {
           const q = String(params.query || params.q || '').trim();
-          if (!q) return this.agentHelp('find-note', 'query=dashboard');
-          return this.findAndOpenNote(q);
+          if (!q) need('query=dashboard');
+          const found = this.findAndOpenNote(q);
+          if (!found) throw Object.assign(new Error(`No note matches "${q}"`), { code: 'note_not_found' });
+          result = this.fileResult(found);
+          break;
         }
         default:
-          new Notice('Agentic dashboard · unknown action. Use: open-dashboard, add-task, capture, meeting, new-daily, open-note, find-note');
+          throw Object.assign(
+            new Error(`Unknown action "${rawAction}". Use: open-dashboard, add-task, capture, meeting, new-daily, open-note, find-note`),
+            { code: 'unknown_action' },
+          );
       }
+      await this.finishCallback(callbacks.success, { action, ...result });
     } catch (err) {
-      console.error('[agentic-dashboard] action failed:', action, err);
-      new Notice(`Agentic dashboard · action failed: ${err.message}`);
+      const known = err && (err.code === 'unknown_action' || err.code === 'note_not_found' || err.code === 'missing_parameter');
+      const message = known ? err.message : `action failed: ${err && err.message ? err.message : err}`;
+      if (!(err && err.silent)) {
+        console.error('[agentic-dashboard] action failed:', action, err);
+        new Notice(`Agentic dashboard · ${message}`);
+      }
+      await this.finishCallback(callbacks.error, {
+        action,
+        errorCode: (err && err.code) || 'action_failed',
+        errorMessage: message,
+      });
     }
+  }
+
+  /* ---------- x-callback-url support (Shortcuts / on-device agents) ---------- */
+
+  /** x-success / x-error targets passed on the URI; empty when not used. */
+  callbackUrls(params) {
+    const read = (names) => {
+      for (const n of names) {
+        const v = params && params[n];
+        if (v !== undefined && v !== null && String(v).trim() !== '') return String(v).trim();
+      }
+      return '';
+    };
+    return {
+      success: read(['x-success', 'xsuccess', 'x_success']),
+      error: read(['x-error', 'xerror', 'x_error']),
+    };
+  }
+
+  buildCallbackUrl(base, fields) {
+    if (!base) return '';
+    const query = Object.keys(fields || {})
+      .filter((k) => fields[k] !== undefined && fields[k] !== null && String(fields[k]) !== '')
+      .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(String(fields[k]))}`)
+      .join('&');
+    if (!query) return base;
+    return base.includes('?') ? `${base}&${query}` : `${base}?${query}`;
+  }
+
+  /** Open the callback URL back to the caller, appending result fields. */
+  async finishCallback(base, fields) {
+    const target = this.buildCallbackUrl(base, fields);
+    if (!target) return;
+    // let the write/notice settle before handing control back to Shortcuts or the agent
+    await new Promise((resolve) => window.setTimeout(resolve, 150));
+    try {
+      window.open(target);
+    } catch (e) {
+      console.error('[agentic-dashboard] x-callback failed:', target, e);
+    }
+  }
+
+  /** name/path/file/url fields describing a created or opened note. */
+  fileResult(file, extra) {
+    const base = { ...(extra || {}) };
+    if (file && file.path) {
+      base.name = file.basename;
+      base.file = file.path;
+      base.path = file.path;
+      base.url = this.obsidianOpenUrl(file.path);
+    }
+    return base;
+  }
+
+  obsidianOpenUrl(vaultPath) {
+    let vault = '';
+    try { vault = this.app.vault.getName(); } catch (e) { vault = ''; }
+    return `obsidian://open?vault=${encodeURIComponent(vault)}&file=${encodeURIComponent(vaultPath)}`;
   }
 
   findAndOpenNote(query) {
@@ -1804,10 +1951,7 @@ class HermesDashboardPlugin extends Plugin {
       else if (f.path.toLowerCase().includes(q)) score = 0;
       if (score >= 0) scored.push({ f, score });
     }
-    if (!scored.length) {
-      new Notice(`Agentic dashboard · no note matching "${query}"`);
-      return;
-    }
+    if (!scored.length) return null;
     const bestScore = Math.max(...scored.map((s) => s.score));
     const ties = scored
       .filter((s) => s.score === bestScore)
@@ -1817,12 +1961,14 @@ class HermesDashboardPlugin extends Plugin {
     new Notice(ties.length > 1
       ? `Opened ${win.basename} (${scored.length} matches)`
       : `Opened ${win.basename} ✓`);
+    return win;
   }
 
   /* ---------- note helpers (daily / task / meeting / capture) ---------- */
 
   dailyPathFor(dateStr) {
-    return `${this.settings.journalFolder}/${dateStr}.md`;
+    const folder = String(this.settings.journalFolder || '').trim().replace(/^\/+|\/+$/g, '') || 'Journal';
+    return `${folder}/${dateStr}.md`;
   }
 
   dailyTemplateFor(dateStr) {
@@ -1859,13 +2005,10 @@ class HermesDashboardPlugin extends Plugin {
   }
 
   async openOrCreateDaily(dateStr) {
-    const path = this.dailyPathFor(dateStr);
+    const folder = await this.ensureVaultFolder(this.settings.journalFolder, 'Journal');
+    const path = `${folder}/${dateStr}.md`;
     let f = this.app.vault.getAbstractFileByPath(path);
     if (!(f instanceof TFile)) {
-      const folder = this.settings.journalFolder;
-      if (!(this.app.vault.getAbstractFileByPath(folder) instanceof TFolder)) {
-        await this.app.vault.createFolder(folder);
-      }
       f = await this.app.vault.create(path, this.dailyTemplateFor(dateStr));
     }
     await this.app.workspace.getLeaf('tab').openFile(f);
@@ -1885,6 +2028,7 @@ class HermesDashboardPlugin extends Plugin {
     const existing = await this.app.vault.read(f);
     const content = existing.endsWith('\n') ? existing : existing + '\n';
     await this.app.vault.modify(f, `${content}- [ ] ${sanitizeName(text)}${prio}${rec} ➕ ${ymd(new Date())} 📅 ${dateStr}\n`);
+    return f;
   }
 
   async toggleTaskLine(path, rawLine) {
@@ -1963,14 +2107,38 @@ class HermesDashboardPlugin extends Plugin {
     return `[[${title}]]`;
   }
 
+  /** Resolve a settings folder defensively (empty/missing/badly-cased folders break writes on iOS). */
+  async ensureVaultFolder(raw, fallback) {
+    const path = String(raw || '').trim().replace(/^\/+|\/+$/g, '') || fallback;
+    const existing = await this.findVaultFolder(path);
+    if (existing) return existing;
+    let acc = '';
+    for (const part of path.split('/').filter(Boolean)) {
+      acc = acc ? `${acc}/${part}` : part;
+      const found = await this.findVaultFolder(acc);
+      if (found) { acc = found; continue; }
+      await this.app.vault.createFolder(acc);
+    }
+    return acc;
+  }
+
+  /** Exact match first, then a case-insensitive one (iOS/macOS filesystems ignore case). */
+  async findVaultFolder(path) {
+    const direct = this.app.vault.getAbstractFileByPath(path);
+    if (direct instanceof TFolder) return direct.path;
+    const want = String(path).toLowerCase();
+    const all = typeof this.app.vault.getAllLoadedFiles === 'function'
+      ? this.app.vault.getAllLoadedFiles()
+      : [];
+    const hit = all.find((f) => f instanceof TFolder && String(f.path).toLowerCase() === want);
+    return hit ? hit.path : '';
+  }
+
   async ensureDailyNote(dateStr) {
-    const path = this.dailyPathFor(dateStr);
+    const folder = await this.ensureVaultFolder(this.settings.journalFolder, 'Journal');
+    const path = `${folder}/${dateStr}.md`;
     let f = this.app.vault.getAbstractFileByPath(path);
     if (f instanceof TFile) return f;
-    const folder = this.settings.journalFolder;
-    if (!(this.app.vault.getAbstractFileByPath(folder) instanceof TFolder)) {
-      await this.app.vault.createFolder(folder);
-    }
     return this.app.vault.create(path, this.dailyTemplateFor(dateStr));
   }
 
@@ -2003,11 +2171,11 @@ class HermesDashboardPlugin extends Plugin {
     const dateStr = this.normalizeDate(o.date);
     const timeStr = this.normalizeTime(timeOpt, now);
     const name = sanitizeName(title) || 'Meeting';
-    const folder = this.settings.meetingsFolder;
-    if (!(this.app.vault.getAbstractFileByPath(folder) instanceof TFolder)) {
-      await this.app.vault.createFolder(folder);
+    const folder = await this.ensureVaultFolder(this.settings.meetingsFolder, 'Meetings');
+    let path = `${folder}/${dateStr} ${timeStr} - ${name}.md`;
+    for (let n = 2; this.app.vault.getAbstractFileByPath(path); n++) {
+      path = `${folder}/${dateStr} ${timeStr} - ${name} (${n}).md`;
     }
-    const path = `${folder}/${dateStr} ${timeStr} - ${name}.md`;
     const listBlock = (v) => {
       const lines = String(v || '').split(/\r?\n|\\n/).map((x) => x.trim()).filter(Boolean);
       return lines.length ? lines.map((x) => `- ${x}`).join('\n') : '- ';
@@ -2043,7 +2211,7 @@ class HermesDashboardPlugin extends Plugin {
       actionsBlock(),
       '',
     ].join('\n');
-    await this.app.vault.create(path, content);
+    const file = await this.app.vault.create(path, content);
     if (this.settings.linkNotes) {
       await this.linkIntoDaily(
         dateStr,
@@ -2051,6 +2219,7 @@ class HermesDashboardPlugin extends Plugin {
         `- ${timeStr.slice(0, 2)}:${timeStr.slice(2)} ${this.linkFor(name, path)}`,
       );
     }
+    return file;
   }
 
   async captureToInbox(type, text, opts) {
@@ -2059,10 +2228,7 @@ class HermesDashboardPlugin extends Plugin {
     const dateStr = ymd(now);
     const timeStr = `${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`;
     const name = sanitizeName(text).slice(0, 60) || type;
-    const folder = this.settings.inboxFolder;
-    if (!(this.app.vault.getAbstractFileByPath(folder) instanceof TFolder)) {
-      await this.app.vault.createFolder(folder);
-    }
+    const folder = await this.ensureVaultFolder(this.settings.inboxFolder, 'Inbox');
     const path = `${folder}/${dateStr} ${timeStr} - ${name}.md`;
 
     // rich captures: extra frontmatter + body sections
@@ -2100,7 +2266,7 @@ class HermesDashboardPlugin extends Plugin {
       '— captured from Agentic dashboard',
       '',
     ].join('\n');
-    await this.app.vault.create(path, content);
+    const file = await this.app.vault.create(path, content);
     if (this.settings.linkNotes) {
       await this.linkIntoDaily(
         dateStr,
@@ -2108,6 +2274,7 @@ class HermesDashboardPlugin extends Plugin {
         `- ${timeStr.slice(0, 2)}:${timeStr.slice(2, 4)} ${this.linkFor(name, path)}`,
       );
     }
+    return file;
   }
 }
 
