@@ -1772,8 +1772,28 @@ class HermesDashboardPlugin extends Plugin {
     return '';
   }
 
+  /** Obsidian overwrites `action` with the protocol handler id, so the requested
+   *  action has to come from `op` — or be inferred from the parameters supplied. */
+  intendedAction(params) {
+    const host = String((params && params.action) || '').toLowerCase().trim();
+    const named = host && host !== 'agentic-dashboard' ? host : '';
+    const alt = this.pickParam(params, ['op', 'do', 'command', 'intent', 'mode']);
+    if (named) return named;
+    if (alt) return alt;
+    const has = (k) => params && params[k] !== undefined && params[k] !== null && String(params[k]).trim() !== '';
+    const anyOf = (keys) => keys.some(has);
+    if (has('path')) return 'open-note';
+    if (has('query') || has('q')) return 'find-note';
+    if (anyOf(['agenda', 'decisions', 'actions', 'time', 'start', 'starttime', 'at', 'title', 'subject'])) return 'meeting';
+    if (has('type')) return 'capture';
+    if (anyOf(['priority', 'recurrence'])) return 'add-task';
+    if (has('date') && !anyOf(['text', 'task', 'todo', 'body', 'content'])) return 'new-daily';
+    if (anyOf(['text', 'task', 'todo', 'body', 'content'])) return 'add-task';
+    return 'open-dashboard';
+  }
+
   async handleAgentAction(params) {
-    const rawAction = String(params.action || '').toLowerCase().trim();
+    const rawAction = this.intendedAction(params);
     const action = this.canonicalAction(rawAction);
     const text = this.pickParam(params, ['text', 'task', 'todo', 'body', 'content']);
     const title = this.pickParam(params, ['title', 'name', 'subject']) || text;
