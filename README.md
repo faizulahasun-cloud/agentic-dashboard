@@ -64,7 +64,7 @@ Daily notes can link back to a central dashboard note (like the `Agentic Dashboa
 
 The hero banner shows a calm gradient out of the box — no extra files needed. To enable the animated crystal video hero:
 
-1. Download `hermes_obsidian_animated_profile_with_long_crystal_tone.mp4` (~1 MB) from the [latest release](https://github.com/faizulahasun-cloud/agentic-dashboard/releases/latest) — it ships as a separate asset, next to the plugin files
+1. Download `hermes_obsidian_animated_profile_with_long_crystal_tone.mp4` (~1 MB) from the [latest release](https://github.com/faizulahasun-cloud/agentic-dashboard/blob/main/assets/hermes_obsidian_animated_profile_with_long_crystal_tone.mp4) - one copy in the repo, no longer shipped as a release asset
 2. Put it anywhere in your vault (e.g. an `assets/` folder)
 3. Set **Hero video path** in the plugin settings to that vault-relative path (e.g. `assets/hermes_obsidian_animated_profile_with_long_crystal_tone.mp4`)
 
