@@ -113,7 +113,21 @@ The plugin registers `obsidian://agentic-dashboard?action=...` — useful for li
 
 Base: `obsidian://agentic-dashboard?action=<action>&...`. Spaces in parameters should be URL-encoded (`%20`). URI actions confirm with an in-app notice.
 
+Action names are forgiving — agents that guess `create-meeting`, `new_meeting` or `schedule-meeting` still land on `meeting`, and `name`/`subject` work in place of `title`, `start` in place of `time`. On iOS (Shortcuts, on-device agents) percent-encode every value: `%20` space, `%0A` newline, `%26` for `&` — one raw `&` splits the parameter list and the title or date silently disappears.
+
 Agents can also just write notes directly (plain file edits) — the dashboard listens to vault events and refreshes itself.
+
+#### x-callback-url replies
+
+Add `x-success` and/or `x-error` and the plugin opens that URL back when the action finishes, so a Shortcut or on-device agent gets a real confirmation instead of guessing from a notice:
+
+```
+obsidian://agentic-dashboard?action=meeting&title=Design%20review&time=14%3A30
+  &x-success=shortcuts%3A%2F%2Frun-shortcut%3Fname%3DAfterMeeting
+  &x-error=shortcuts%3A%2F%2Frun-shortcut%3Fname%3DOnFailure
+```
+
+Success replies carry `action`, `name`, `file`, `path`, `url` (an `obsidian://open` link), plus `title` for meetings, `date` for tasks and daily notes, `type` for captures. Error replies carry `action`, `errorCode` and `errorMessage`; `errorCode` is `unknown_action`, `missing_parameter`, `note_not_found` or `action_failed`. Your callback's own existing query string is preserved.
 
 ## Compatibility
 
