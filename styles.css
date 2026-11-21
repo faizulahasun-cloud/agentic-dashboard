@@ -103,7 +103,8 @@
 }
 .hd-hero-right {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 12px;
 }
 .hd-weather {
@@ -572,7 +573,9 @@
   .hd-grid { grid-template-columns: 1fr; }
   .hd-hero { min-height: 220px; }
   .hd-clock { font-size: 20px; }
-  .hd-hero-right { gap: 8px; }
+  .hd-hero-right {
+    gap: 6px;
+  }
   .hd-weather { font-size: 13px; padding: 6px 10px; }
   .hd-date { font-size: 15.5px; }
   .hd-stats { grid-template-columns: repeat(3, 1fr); }
