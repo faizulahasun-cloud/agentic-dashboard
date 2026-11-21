@@ -1815,36 +1815,46 @@ class HermesDashboardPlugin extends Plugin {
       return `Task updated (${hit.file.path}:${hit.index + 1}): ${cleanTaskText(hit.line)}`;
     });
 
-    reg('agentic-dashboard:append-note', 'Append text to a note (end, top or a heading)', {
-      path: flag('Vault path of the note', '<path>'),
-      date: flag('Daily note date instead of path (YYYY-MM-DD)', '<date>'),
-      text: flag('Text to append (\\n separated)', '<text>', true),
-      heading: flag('Insert at the end of this heading section', '<heading>'),
-      position: flag('end (default) or top', '<position>'),
+    reg('agentic-dashboard:update-meeting', 'Edit a meeting note: title, date, time, agenda, notes, decisions, actions', {
+      query: flag('Meeting name or text to match', '<query>'),
+      path: flag('Vault path of the meeting note', '<path>'),
+      'new-title': flag('New meeting title', '<title>'),
+      date: flag('New date (YYYY-MM-DD)', '<date>'),
+      time: flag('New start time (HH:mm or HHmm)', '<time>'),
+      agenda: flag('Agenda points, one per line (\\n separated)', '<text>'),
+      notes: flag('Notes, one bullet per line (\\n separated)', '<text>'),
+      decisions: flag('Decisions, one bullet per line (\\n separated)', '<text>'),
+      actions: flag('Action items, one task per line (\\n separated)', '<text>'),
+      mode: flag('append (default) or replace section content', '<mode>'),
     }, async (f) => {
-      const text = String(f.text || '').trim();
-      if (!text) return 'error: text=<text to append> is required';
-      const file = await this.appendToNote(f);
+      if (!f.query && !f.path) return 'error: query=<meeting> or path=<vault path> is required';
+      const file = await this.updateMeeting(f);
       this.refreshViews(300);
-      return `Appended to ${file.path}`;
+      return `Meeting updated: ${file.path}`;
     });
 
-    reg('agentic-dashboard:edit-note', 'Replace text in an existing note', {
-      path: flag('Vault path of the note', '<path>'),
-      date: flag('Daily note date instead of path (YYYY-MM-DD)', '<date>'),
-      find: flag('Exact text to find (or a regex with regex=true)', '<text>', true),
-      replace: flag('Replacement text (empty deletes)', '<text>'),
-      all: flag('Replace every match (default: unique match only)', '<true>'),
-      occurrence: flag('Which match to replace (1-based)', '<n>'),
-      regex: flag('Treat find as a regular expression', '<true>'),
-      frontmatter: flag('Allow edits inside YAML frontmatter', '<true>'),
-    }, async (f) => {
-      const find = String(f.find || '').trim();
-      if (!find) return 'error: find=<text to replace> is required';
-      const { file, count } = await this.editNoteText(f);
-      this.refreshViews(300);
-      return `Replaced ${count} occurrence${count === 1 ? '' : 's'} in ${file.path}`;
+    const captureFlags = () => ({
+      query: flag('Capture text to match', '<query>'),
+      path: flag('Vault path of the capture note', '<path>'),
+      text: flag('New main line (also renames the note)', '<text>'),
+      date: flag('New date (YYYY-MM-DD)', '<date>'),
+      time: flag('New time (HH:mm or HHmmss)', '<time>'),
+      source: flag('To watch: link or platform (none to clear)', '<text>'),
+      author: flag('Book: author (none to clear)', '<text>'),
+      status: flag('Book: want-to-read | reading | finished (none to clear)', '<text>'),
+      context: flag('Reflection: context lines (\\n separated)', '<text>'),
+      takeaway: flag('Reflection: takeaway lines (\\n separated)', '<text>'),
+      body: flag('Notes lines (\\n separated)', '<text>'),
+      mode: flag('append (default) or replace section content', '<mode>'),
     });
+    for (const t of CAPTURE_TYPES) {
+      reg(`agentic-dashboard:update-${t.slug}`, `Edit ${t.label} capture in the Inbox`, captureFlags(), async (f) => {
+        if (!f.query && !f.path) return `error: query=<${t.slug}> or path=<vault path> is required`;
+        const file = await this.updateCapture(f, t.slug);
+        this.refreshViews(300);
+        return `Updated ${t.slug}: ${file.path}`;
+      });
+    }
   }
 
   /** Agents phrase actions differently (create-meeting, new_meeting, schedule meeting…). */
@@ -1881,14 +1891,24 @@ class HermesDashboardPlugin extends Plugin {
       'modify-task': 'update-task',
       'reschedule-task': 'update-task',
       'reschedule': 'update-task',
-      'append-note': 'append-note',
-      'append': 'append-note',
-      'add-line': 'append-note',
-      'add-note': 'append-note',
-      'edit-note': 'edit-note',
-      'update-note': 'edit-note',
-      'replace-in-note': 'edit-note',
-      'edit': 'edit-note',
+      'update-meeting': 'update-meeting',
+      'edit-meeting': 'update-meeting',
+      'modify-meeting': 'update-meeting',
+      'meeting-update': 'update-meeting',
+      'update-capture': 'update-capture',
+      'edit-capture': 'update-capture',
+      'update-thought': 'update-thought',
+      'edit-thought': 'update-thought',
+      'update-idea': 'update-idea',
+      'edit-idea': 'update-idea',
+      'update-reflection': 'update-reflection',
+      'edit-reflection': 'update-reflection',
+      'update-to-watch': 'update-to-watch',
+      'edit-to-watch': 'update-to-watch',
+      'update-book': 'update-book',
+      'edit-book': 'update-book',
+      'update-article': 'update-article',
+      'edit-article': 'update-article',
       'quick-capture': 'capture',
       'capture-note': 'capture',
       'create-note': 'capture',
@@ -1927,8 +1947,7 @@ class HermesDashboardPlugin extends Plugin {
     if (alt) return alt;
     const has = (k) => params && params[k] !== undefined && params[k] !== null && String(params[k]).trim() !== '';
     const anyOf = (keys) => keys.some(has);
-    if (has('find') || has('replace')) return 'edit-note';
-    if (has('heading') || has('section')) return 'append-note';
+    if (has('new-title') || has('newtitle')) return 'update-meeting';
     if (has('path')) return 'open-note';
     if (has('query') || has('q')) return 'find-note';
     if (anyOf(['agenda', 'decisions', 'actions', 'time', 'start', 'starttime', 'at', 'title', 'subject'])) return 'meeting';
@@ -2046,29 +2065,44 @@ class HermesDashboardPlugin extends Plugin {
           result = this.fileResult(hit.file, { task: cleanTaskText(hit.line), line: hit.index + 1 });
           break;
         }
-        case 'append-note': {
-          const file = await this.appendToNote(params);
-          new Notice(`Appended to ${file.basename} ✓`);
+        case 'update-meeting': {
+          if (!this.pickParam(params, ['path', 'file', 'note', 'query', 'q', 'match', 'search', 'title', 'name', 'subject'])) {
+            need('query=<meeting name> (&new-title=, date=, agenda=… optional)');
+          }
+          const file = await this.updateMeeting(params);
+          new Notice('Meeting updated ✓');
           this.refreshViews(300);
           result = this.fileResult(file);
           break;
         }
-        case 'edit-note': {
-          const { file, count } = await this.editNoteText(params);
-          new Notice(`Edited ${file.basename} ✓`);
+        case 'update-capture':
+        case 'update-thought':
+        case 'update-idea':
+        case 'update-reflection':
+        case 'update-to-watch':
+        case 'update-book':
+        case 'update-article': {
+          if (!this.pickParam(params, ['path', 'file', 'note', 'query', 'q', 'match', 'search', 'title', 'name', 'subject'])) {
+            need('query=<capture text> (&text=, body=, status=… optional)');
+          }
+          const type = action === 'update-capture'
+            ? this.pickParam(params, ['type', 'tag'])
+            : action.replace(/^update-/, '');
+          const file = await this.updateCapture(params, type);
+          new Notice('Capture updated ✓');
           this.refreshViews(300);
-          result = this.fileResult(file, { replaced: count });
+          result = this.fileResult(file, { type: type || 'capture' });
           break;
         }
         default:
           throw Object.assign(
-            new Error(`Unknown action "${rawAction}". Use: open-dashboard, add-task, toggle-task, update-task, capture, meeting, new-daily, open-note, find-note, append-note, edit-note`),
+            new Error(`Unknown action "${rawAction}". Use: open-dashboard, add-task, toggle-task, update-task, capture, meeting, update-meeting, update-capture, update-thought, update-idea, update-reflection, update-to-watch, update-book, update-article, new-daily, open-note, find-note`),
             { code: 'unknown_action' },
           );
       }
       await this.finishCallback(callbacks.success, { action, ...result });
     } catch (err) {
-      const known = err && ['unknown_action', 'note_not_found', 'missing_parameter', 'task_not_found', 'ambiguous_match', 'match_not_found', 'no_change'].includes(err.code);
+      const known = err && ['unknown_action', 'note_not_found', 'missing_parameter', 'task_not_found', 'ambiguous_match', 'match_not_found', 'no_change', 'type_mismatch'].includes(err.code);
       const message = known ? err.message : `action failed: ${err && err.message ? err.message : err}`;
       if (!(err && err.silent)) {
         console.error('[agentic-dashboard] action failed:', action, err);
@@ -2456,8 +2490,8 @@ class HermesDashboardPlugin extends Plugin {
     return { file: hit.file, index: hit.index, line: newLine };
   }
 
-  /** Resolve a target note from path= (exact) or date= (daily note). */
-  async noteForParams(params) {
+  /** Resolve one entity note: exact path=, or the only folder match for query= (optionally tag-filtered). */
+  async findEntityNote(params, folder, tag) {
     const p = params || {};
     const path = this.pickParam(p, ['path', 'file', 'note']);
     if (path) {
@@ -2467,136 +2501,252 @@ class HermesDashboardPlugin extends Plugin {
       }
       return f;
     }
-    const dateOpt = this.pickParam(p, ['date', 'day', 'when']);
-    if (dateOpt) return this.ensureDailyNote(this.normalizeDate(dateOpt));
-    throw Object.assign(
-      new Error('path=<vault path> or date=YYYY-MM-DD is required'),
-      { code: 'missing_parameter' },
-    );
+    const q = this.pickParam(p, ['query', 'q', 'match', 'search', 'title', 'name', 'subject']).toLowerCase();
+    const wanted = slugify(tag || '');
+    const files = this.app.vault.getMarkdownFiles()
+      .filter((f) => !folder || f.path.startsWith(folder + '/'));
+    const tagOf = (f) => {
+      const c = this.app.metadataCache.getFileCache(f);
+      const fm = (c && c.frontmatter) || {};
+      return slugify(String(fm.tag || fm.type || ''));
+    };
+    const pool = wanted ? files.filter((f) => tagOf(f) === wanted) : files;
+    let hits = q ? pool.filter((f) => f.basename.toLowerCase().includes(q)) : pool;
+    if (!hits.length && q) {
+      for (const f of pool) {
+        const raw = await this.app.vault.cachedRead(f);
+        if (raw.toLowerCase().includes(q)) hits.push(f);
+      }
+    }
+    if (!hits.length) {
+      throw Object.assign(
+        new Error(`No ${tag || 'note'} matches${q ? ` "${q}"` : ''}`),
+        { code: 'note_not_found' },
+      );
+    }
+    if (hits.length > 1) {
+      hits.sort((a, b) => b.stat.mtime - a.stat.mtime);
+      throw Object.assign(
+        new Error(`${hits.length} ${tag || 'notes'} match — pass path= or a longer query= (e.g. ${hits.slice(0, 3).map((f) => f.path).join(' | ')})`),
+        { code: 'ambiguous_match' },
+      );
+    }
+    return hits[0];
   }
 
-  /** Append text to a note (end, top, or end of a heading's section). */
-  async appendToNote(params) {
+  /** Read one YAML frontmatter value. */
+  fmValue(raw, key) {
+    const m = new RegExp(`^${key}\\s*:\\s*(.*)$`, 'm').exec(raw);
+    return m ? m[1].trim() : '';
+  }
+
+  /** Set or insert one YAML frontmatter key (creates a block when missing). */
+  setFrontmatter(raw, key, value) {
+    const cr = raw.includes('\r\n') ? '\r' : '';
+    const lines = raw.split('\n');
+    const end = frontmatterEnd(lines);
+    const line = `${key}: ${value}${cr}`;
+    if (!end) return `---${cr}\n${line}\n---${cr}\n${raw}`;
+    const re = new RegExp(`^${key}\\s*:`);
+    for (let i = 1; i < end - 1; i++) {
+      if (re.test(lines[i])) {
+        lines[i] = line;
+        return lines.join('\n');
+      }
+    }
+    lines.splice(end - 1, 0, line);
+    return lines.join('\n');
+  }
+
+  /** Remove one YAML frontmatter key. */
+  removeFrontmatterKey(raw, key) {
+    const lines = raw.split('\n');
+    const end = frontmatterEnd(lines);
+    if (!end) return raw;
+    const re = new RegExp(`^${key}\\s*:`);
+    for (let i = 1; i < end - 1; i++) {
+      if (re.test(lines[i])) {
+        lines.splice(i, 1);
+        return lines.join('\n');
+      }
+    }
+    return raw;
+  }
+
+  /** Append to, or replace, the body of a `## Heading` section. Returns null when the heading is missing. */
+  replaceSectionBody(raw, heading, contentLines, mode) {
+    const eol = raw.includes('\r\n') ? '\r\n' : '\n';
+    const lines = raw.split(/\r?\n/);
+    const levelOf = (l) => {
+      const m = /^(#{1,6})\s+/.exec(l);
+      return m ? m[1].length : 0;
+    };
+    const wanted = heading.toLowerCase();
+    const start = lines.findIndex((l) => levelOf(l) && l.replace(/^#+\s*/, '').trim().toLowerCase() === wanted);
+    if (start === -1) return null;
+    const level = levelOf(lines[start]);
+    let end = lines.length;
+    for (let i = start + 1; i < lines.length; i++) {
+      const lv = levelOf(lines[i]);
+      if (lv && lv <= level) { end = i; break; }
+    }
+    let bodyEnd = end;
+    while (bodyEnd > start + 1 && lines[bodyEnd - 1].trim() === '') bodyEnd--;
+    const existing = lines.slice(start + 1, bodyEnd).filter((l) => l.trim() !== '');
+    const next = mode === 'replace' ? contentLines : [...existing, ...contentLines];
+    lines.splice(start + 1, bodyEnd - (start + 1), '', ...next, '');
+    for (let i = lines.length - 1; i > 0; i--) {
+      if (lines[i].trim() === '' && lines[i - 1].trim() === '') lines.splice(i, 1);
+    }
+    return lines.join(eol);
+  }
+
+  /** Add a `## Heading` section at the end of the body. */
+  appendSection(raw, heading, contentLines) {
+    const eol = raw.includes('\r\n') ? '\r\n' : '\n';
+    return `${raw.replace(/\s+$/, '')}${eol}${eol}## ${heading}${eol}${eol}${contentLines.join(eol)}${eol}`;
+  }
+
+  /** Rename within a folder, keeping the file's links intact. */
+  async renameEntityFile(file, folder, base) {
+    let path = `${folder}/${base}.md`;
+    for (let n = 2; path !== file.path && this.app.vault.getAbstractFileByPath(path); n++) {
+      path = `${folder}/${base} (${n}).md`;
+    }
+    if (path === file.path) return file;
+    await this.app.fileManager.renameFile(file, path);
+    return this.app.vault.getAbstractFileByPath(path) || file;
+  }
+
+  /** Edit a meeting note in its own format: date, time, title, agenda/notes/decisions/actions. */
+  async updateMeeting(params) {
     const p = params || {};
-    const block = this.pickParam(p, ['text', 'content', 'body', 'line']);
-    if (!block) throw Object.assign(new Error('text=<text to add> is required'), { code: 'missing_parameter' });
-    const file = await this.noteForParams(p);
-    const heading = this.pickParam(p, ['heading', 'section']);
-    const position = String(p.position || (p.top ? 'top' : 'end')).trim().toLowerCase();
+    const folder = await this.ensureVaultFolder(this.settings.meetingsFolder, 'Meetings');
+    const file = await this.findEntityNote(p, folder, 'meeting');
+    const mode = /^(replace|overwrite|set)$/i.test(String(p.mode || '')) ? 'replace' : 'append';
+    const items = (v) => String(v || '').split(/\r?\n|\\n/).map((x) => x.trim()).filter(Boolean);
+    const dateStr = this.pickParam(p, ['date', 'day', 'when'])
+      ? this.normalizeDate(this.pickParam(p, ['date', 'day', 'when'])) : '';
+    const timeRaw = this.pickParam(p, ['time', 'start', 'starttime', 'at']);
+    const timeStr = timeRaw ? this.normalizeTime(timeRaw, new Date()) : '';
+    const title = sanitizeName(this.pickParam(p, ['new-title', 'newtitle', 'rename']));
+    let raw = await this.app.vault.read(file);
     let changed = false;
 
-    await this.app.vault.process(file, (raw) => {
-      const eol = raw.includes('\r\n') ? '\r\n' : '\n';
-      const lines = raw.split(/\r?\n/);
-      const blockLines = block.split(/\r?\n/);
-      const levelOf = (l) => {
-        const m = /^(#{1,6})\s+/.exec(l);
-        return m ? m[1].length : 0;
-      };
-
-      if (heading) {
-        const wanted = heading.replace(/^#+\s*/, '').trim().toLowerCase();
-        const start = lines.findIndex((l) => levelOf(l) && l.replace(/^#+\s*/, '').trim().toLowerCase() === wanted);
-        if (start === -1) {
-          throw Object.assign(new Error(`Heading "${heading}" not found in ${file.path}`), { code: 'match_not_found' });
-        }
-        const level = levelOf(lines[start]);
-        let end = lines.length;
-        for (let i = start + 1; i < lines.length; i++) {
-          const lv = levelOf(lines[i]);
-          if (lv && lv <= level) { end = i; break; }
-        }
-        let at = end;
-        while (at > start + 1 && lines[at - 1].trim() === '') at--;
-        lines.splice(at, 0, ...blockLines);
-        if (at + blockLines.length < lines.length && levelOf(lines[at + blockLines.length])) {
-          lines.splice(at + blockLines.length, 0, '');
-        }
-      } else if (position === 'top' || position === 'start') {
-        const at = frontmatterEnd(lines);
-        const head = lines.slice(0, at);
-        const tail = lines.slice(at);
-        const out = head.slice();
-        if (head.length) out.push('');
-        out.push(...blockLines);
-        if (tail.length && tail[0].trim() !== '') out.push('');
-        out.push(...tail);
-        lines.length = 0;
-        lines.push(...out);
-      } else {
-        let at = lines.length;
-        while (at > 0 && lines[at - 1].trim() === '') at--;
-        lines.splice(at, 0, ...blockLines);
-        if (lines[lines.length - 1].trim() !== '') lines.push('');
-      }
-
-      const out = lines.join(eol);
-      changed = out !== raw;
-      return out;
-    });
-
-    if (!changed) {
-      throw Object.assign(new Error('Note already contains that text at the target position'), { code: 'no_change' });
+    if (dateStr) { raw = this.setFrontmatter(raw, 'date', dateStr); changed = true; }
+    if (timeStr) { raw = this.setFrontmatter(raw, 'time', timeStr); changed = true; }
+    if (title) {
+      raw = raw.replace(/^#\s+.*$/m, `# ${title}`);
+      changed = true;
     }
-    return file;
+    for (const [key, heading] of [['agenda', 'Agenda'], ['notes', 'Notes'], ['decisions', 'Decisions']]) {
+      const v = this.pickParam(p, [key]);
+      if (!v) continue;
+      const out = this.replaceSectionBody(raw, heading, items(v).map((x) => `- ${x}`), mode);
+      raw = out === null ? this.appendSection(raw, heading, items(v).map((x) => `- ${x}`)) : out;
+      changed = true;
+    }
+    const act = this.pickParam(p, ['actions', 'action-items', 'actionitems', 'todo']);
+    if (act) {
+      const day = dateStr || this.fmValue(raw, 'date') || ymd(new Date());
+      const out = this.replaceSectionBody(raw, 'Action items', items(act).map((x) => `- [ ] ${x} 📅 ${day}`), mode);
+      if (out === null) {
+        throw Object.assign(new Error(`Heading "## Action items" not found in ${file.path}`), { code: 'match_not_found' });
+      }
+      raw = out;
+      changed = true;
+    }
+    if (!changed) {
+      throw Object.assign(
+        new Error('Nothing to update — pass date=, time=, agenda=, notes=, decisions=, actions= or new-title='),
+        { code: 'no_change' },
+      );
+    }
+    await this.app.vault.modify(file, raw);
+    const name = title || sanitizeName(file.basename.replace(/^\d{4}-\d{2}-\d{2} \d{4} - /, '')) || 'Meeting';
+    const base = `${this.fmValue(raw, 'date') || ymd(new Date())} ${this.fmValue(raw, 'time') || '0000'} - ${name}`;
+    return this.renameEntityFile(file, folder, base);
   }
 
-  /** Replace text in a note; unique match unless all=true or occurrence=N. */
-  async editNoteText(params) {
+  /** Edit an inbox capture in its own format (thought, idea, reflection, to-watch, book, article). */
+  async updateCapture(params, type) {
     const p = params || {};
-    const find = this.pickParam(p, ['find', 'match', 'old', 'from']);
-    if (!find) throw Object.assign(new Error('find=<text to replace> is required'), { code: 'missing_parameter' });
-    const replace = p.replace !== undefined ? String(p.replace)
-      : (p.new !== undefined ? String(p.new) : (p.to !== undefined ? String(p.to) : ''));
-    const file = await this.noteForParams(p);
-    const all = /^(1|true|yes|all)$/i.test(String(p.all || ''));
-    const occurrence = Math.max(1, parseInt(this.pickParam(p, ['occurrence', 'nth']), 10) || 1);
-    const allowFrontmatter = /^(1|true|yes)$/i.test(String(p.frontmatter || ''));
-    let count = 0;
+    const folder = await this.ensureVaultFolder(this.settings.inboxFolder, 'Inbox');
+    const file = await this.findEntityNote(p, folder, type || '');
+    const mode = /^(replace|overwrite|set)$/i.test(String(p.mode || '')) ? 'replace' : 'append';
+    const items = (v) => String(v || '').split(/\r?\n|\\n/).map((x) => x.trim()).filter(Boolean);
+    const wantType = slugify(type || this.pickParam(p, ['type', 'tag']) || '');
+    let raw = await this.app.vault.read(file);
+    const currentTag = slugify(this.fmValue(raw, 'tag'));
+    if (type && currentTag && currentTag !== slugify(type)) {
+      throw Object.assign(
+        new Error(`${file.path} is tagged "${currentTag}", not "${slugify(type)}"`),
+        { code: 'type_mismatch' },
+      );
+    }
+    let changed = false;
+    const hasFooter = /^— captured from Agentic dashboard\s*$/m.test(raw);
+    if (hasFooter) {
+      raw = raw.replace(/^— captured from Agentic dashboard\s*$/m, '').replace(/\s+$/, '\n');
+    }
 
-    await this.app.vault.process(file, (raw) => {
-      const re = p.regex
-        ? new RegExp(find, 'g')
-        : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-      const matches = [...raw.matchAll(re)];
-      if (!matches.length) {
-        throw Object.assign(new Error(`No match for "${find}" in ${file.path}`), { code: 'match_not_found' });
+    const text = this.pickParam(p, ['text', 'content', 'line']);
+    if (text) {
+      const eol = raw.includes('\r\n') ? '\r\n' : '\n';
+      const lines = raw.split(/\r?\n/);
+      const start = frontmatterEnd(lines);
+      let at = -1;
+      for (let i = start; i < lines.length; i++) {
+        const l = lines[i].trim();
+        if (!l) continue;
+        if (l.startsWith('#') || l.startsWith('— captured')) break;
+        at = i;
+        break;
       }
-      if (!all && matches.length > 1 && !this.pickParam(p, ['occurrence', 'nth'])) {
-        const where = matches.slice(0, 5)
-          .map((m) => raw.slice(0, m.index).split('\n').length)
-          .join(', ');
-        throw Object.assign(
-          new Error(`"${find}" matches ${matches.length} times (lines ${where}) — pass occurrence= or all=true`),
-          { code: 'ambiguous_match' },
-        );
+      if (at === -1) {
+        throw Object.assign(new Error(`No body line to update in ${file.path}`), { code: 'match_not_found' });
       }
-      const chosen = all ? matches : [matches[Math.min(occurrence, matches.length) - 1]];
-      if (!allowFrontmatter) {
-        const fmEnd = frontmatterEnd(raw.split('\n'));
-        if (fmEnd) {
-          const fmChars = raw.split('\n').slice(0, fmEnd).join('\n').length + 1;
-          if (chosen.some((m) => m.index < fmChars)) {
-            throw Object.assign(
-              new Error('Refusing to edit YAML frontmatter — pass frontmatter=true to allow'),
-              { code: 'action_failed' },
-            );
-          }
-        }
-      }
-      const selected = new Set(chosen.map((m) => m.index));
-      let i = -1;
-      const out = raw.replace(re, (match) => {
-        i++;
-        if (!selected.has(matches[i].index)) return match;
-        count++;
-        return replace;
-      });
-      if (!count) throw Object.assign(new Error('Nothing replaced'), { code: 'no_change' });
-      return out;
-    });
-
-    return { file, count };
+      lines[at] = sanitizeName(text);
+      raw = lines.join(eol);
+      changed = true;
+    }
+    const dateRaw = this.pickParam(p, ['date', 'day', 'when']);
+    const dateStr = dateRaw ? this.normalizeDate(dateRaw) : '';
+    if (dateStr) { raw = this.setFrontmatter(raw, 'date', dateStr); changed = true; }
+    const timeRaw = this.pickParam(p, ['time']);
+    const timeStr = timeRaw ? (/^\d{4,6}$/.test(timeRaw) ? timeRaw : this.normalizeTime(timeRaw, new Date())) : '';
+    if (timeStr) { raw = this.setFrontmatter(raw, 'time', timeStr); changed = true; }
+    if (wantType && currentTag !== wantType) {
+      raw = this.setFrontmatter(raw, 'tag', wantType);
+      changed = true;
+    }
+    for (const key of ['source', 'author', 'status']) {
+      const v = this.pickParam(p, [key]);
+      if (!v) continue;
+      raw = /^(none|clear|remove|-)$/i.test(v)
+        ? this.removeFrontmatterKey(raw, key)
+        : this.setFrontmatter(raw, key, v);
+      changed = true;
+    }
+    for (const [key, heading] of [['context', 'Context'], ['takeaway', 'Takeaway'], ['body', 'Notes'], ['notes', 'Notes']]) {
+      const v = this.pickParam(p, [key]);
+      if (!v) continue;
+      const out = this.replaceSectionBody(raw, heading, items(v), mode);
+      raw = out === null ? this.appendSection(raw, heading, items(v)) : out;
+      changed = true;
+    }
+    if (!changed) {
+      throw Object.assign(
+        new Error('Nothing to update — pass text=, type=, date=, time=, source=, author=, status=, context=, takeaway= or body='),
+        { code: 'no_change' },
+      );
+    }
+    if (hasFooter) raw = raw.replace(/\s+$/, '') + '\n\n— captured from Agentic dashboard\n';
+    await this.app.vault.modify(file, raw);
+    const bodyName = (raw.split(/\r?\n/).find((l, i, arr) => i > frontmatterEnd(arr) && l.trim() && !l.trim().startsWith('#') && !l.startsWith('— captured')) || '').trim();
+    const name = sanitizeName(text || bodyName || file.basename.replace(/^\d{4}-\d{2}-\d{2} \d{6} - /, '')).slice(0, 60) || wantType || 'capture';
+    const base = `${this.fmValue(raw, 'date') || ymd(new Date())} ${this.fmValue(raw, 'time') || '000000'} - ${name}`;
+    return this.renameEntityFile(file, folder, base);
   }
 
   openMeetingModal() {
