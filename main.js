@@ -191,6 +191,62 @@ function priorityRank(p) {
   return 3;
 }
 
+/* ── task line parsing / rebuilding ─────────────────────────── */
+
+const TASK_RECURRENCE_RE = /🔁\s*([^📅⏳🛫➕✅❌]+)/;
+
+/** Split a task body into editable parts (text, priority, dates, recurrence). */
+function splitTaskBody(body) {
+  const src = String(body || '');
+  const date = (re) => {
+    const m = re.exec(src);
+    return m ? m[1] : '';
+  };
+  const recM = TASK_RECURRENCE_RE.exec(src);
+  return {
+    text: src
+      .replace(/[🛫⏳📅➕✅❌]\s*\d{4}-\d{2}-\d{2}/g, '')
+      .replace(/🔁\s*[^📅⏳🛫➕✅❌]+/g, '')
+      .replace(/[⏫🔼🔽⏬]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim(),
+    priority: priorityOf(src),
+    recurrence: recM ? recM[1].replace(/[⏫🔼🔽⏬]/g, '').replace(/\s+/g, ' ').trim() : '',
+    start: date(/🛫\s*(\d{4}-\d{2}-\d{2})/),
+    scheduled: date(/⏳\s*(\d{4}-\d{2}-\d{2})/),
+    due: date(/📅\s*(\d{4}-\d{2}-\d{2})/),
+    created: date(/➕\s*(\d{4}-\d{2}-\d{2})/),
+    done: date(/✅\s*(\d{4}-\d{2}-\d{2})/),
+    cancelled: date(/❌\s*(\d{4}-\d{2}-\d{2})/),
+  };
+}
+
+/** Rebuild a Tasks-compatible checkbox line from parts. */
+function buildTaskLine(indent, status, parts) {
+  const bits = [];
+  if (parts.text) bits.push(parts.text);
+  if (parts.priority === 'high') bits.push('⏫');
+  else if (parts.priority === 'medium') bits.push('🔼');
+  else if (parts.priority === 'low') bits.push('🔽');
+  if (parts.recurrence) bits.push(`🔁 ${parts.recurrence}`);
+  if (parts.start) bits.push(`🛫 ${parts.start}`);
+  if (parts.scheduled) bits.push(`⏳ ${parts.scheduled}`);
+  if (parts.due) bits.push(`📅 ${parts.due}`);
+  if (parts.created) bits.push(`➕ ${parts.created}`);
+  if (parts.done) bits.push(`✅ ${parts.done}`);
+  if (parts.cancelled) bits.push(`❌ ${parts.cancelled}`);
+  return `${indent}- [${status}] ${bits.join(' ')}`.replace(/\s+$/, '');
+}
+
+/** Index of the first line after a YAML frontmatter block (0 when there is none). */
+function frontmatterEnd(lines) {
+  if (!lines.length || lines[0].trim() !== '---') return 0;
+  for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === '---') return i + 1;
+  }
+  return 0;
+}
+
 /* ── recurrence (Tasks-compatible subset) ────────────────────── */
 
 const WEEKDAY_NAMES = {
@@ -717,7 +773,8 @@ class HermesDashboardView extends ItemView {
 
       const toggle = async () => {
         try {
-          await this.plugin.toggleTaskLine(t.path, t.line);
+          const ok = await this.plugin.toggleTaskLine(t.path, t.line);
+          if (!ok) new Notice('Task line changed — dashboard refreshed');
           this.plugin.requestRefresh(250);
         } catch (e) {
           console.error('[agentic-dashboard] toggle failed', e);
@@ -1719,6 +1776,75 @@ class HermesDashboardPlugin extends Plugin {
       this.findAndOpenNote(q);
       return `Searched for: ${q}`;
     });
+
+    reg('agentic-dashboard:toggle-task', 'Toggle a task line in any note', {
+      text: flag('Text contained in the task', '<text>'),
+      line: flag('Exact task line', '<line>'),
+      path: flag('Vault path of the note', '<path>'),
+      date: flag('Daily note date (YYYY-MM-DD)', '<date>'),
+      index: flag('0-based match index when several tasks match', '<n>'),
+    }, async (f) => {
+      if (!String(f.text || '').trim() && !String(f.line || '').trim()) {
+        return 'error: text=<task text> or line=<exact task line> is required';
+      }
+      const hit = await this.toggleTaskTarget(f);
+      this.refreshViews(300);
+      return `Task toggled (${hit.file.path}:${hit.index + 1}): ${cleanTaskText(hit.line)}`;
+    });
+
+    reg('agentic-dashboard:update-task', 'Change a task: text, status, dates, priority or repeat', {
+      text: flag('Text contained in the task', '<text>'),
+      line: flag('Exact task line', '<line>'),
+      path: flag('Vault path of the note', '<path>'),
+      date: flag('Daily note date (YYYY-MM-DD)', '<date>'),
+      index: flag('0-based match index when several tasks match', '<n>'),
+      'new-text': flag('Replacement task text', '<text>'),
+      status: flag('open | done | cancelled', '<status>'),
+      due: flag('Due date (YYYY-MM-DD, or none to clear)', '<date>'),
+      scheduled: flag('Scheduled date (YYYY-MM-DD, or none)', '<date>'),
+      start: flag('Start date (YYYY-MM-DD, or none)', '<date>'),
+      priority: flag('high | medium | low | none', '<priority>'),
+      recurrence: flag("Recurrence rule (or none to clear)", '<rule>'),
+      append: flag('Text to append to the task body', '<text>'),
+    }, async (f) => {
+      if (!String(f.text || '').trim() && !String(f.line || '').trim() && !f.path && !f.date) {
+        return 'error: pass text=<task text> plus the change (new-text=, status=, due=, priority=…)';
+      }
+      const hit = await this.updateTaskTarget(f);
+      this.refreshViews(300);
+      return `Task updated (${hit.file.path}:${hit.index + 1}): ${cleanTaskText(hit.line)}`;
+    });
+
+    reg('agentic-dashboard:append-note', 'Append text to a note (end, top or a heading)', {
+      path: flag('Vault path of the note', '<path>'),
+      date: flag('Daily note date instead of path (YYYY-MM-DD)', '<date>'),
+      text: flag('Text to append (\\n separated)', '<text>', true),
+      heading: flag('Insert at the end of this heading section', '<heading>'),
+      position: flag('end (default) or top', '<position>'),
+    }, async (f) => {
+      const text = String(f.text || '').trim();
+      if (!text) return 'error: text=<text to append> is required';
+      const file = await this.appendToNote(f);
+      this.refreshViews(300);
+      return `Appended to ${file.path}`;
+    });
+
+    reg('agentic-dashboard:edit-note', 'Replace text in an existing note', {
+      path: flag('Vault path of the note', '<path>'),
+      date: flag('Daily note date instead of path (YYYY-MM-DD)', '<date>'),
+      find: flag('Exact text to find (or a regex with regex=true)', '<text>', true),
+      replace: flag('Replacement text (empty deletes)', '<text>'),
+      all: flag('Replace every match (default: unique match only)', '<true>'),
+      occurrence: flag('Which match to replace (1-based)', '<n>'),
+      regex: flag('Treat find as a regular expression', '<true>'),
+      frontmatter: flag('Allow edits inside YAML frontmatter', '<true>'),
+    }, async (f) => {
+      const find = String(f.find || '').trim();
+      if (!find) return 'error: find=<text to replace> is required';
+      const { file, count } = await this.editNoteText(f);
+      this.refreshViews(300);
+      return `Replaced ${count} occurrence${count === 1 ? '' : 's'} in ${file.path}`;
+    });
   }
 
   /** Agents phrase actions differently (create-meeting, new_meeting, schedule meeting…). */
@@ -1744,6 +1870,25 @@ class HermesDashboardPlugin extends Plugin {
       'addtask': 'add-task',
       'task': 'add-task',
       'todo': 'add-task',
+      'toggle-task': 'toggle-task',
+      'complete-task': 'toggle-task',
+      'done-task': 'toggle-task',
+      'check-task': 'toggle-task',
+      'uncheck-task': 'toggle-task',
+      'toggle': 'toggle-task',
+      'update-task': 'update-task',
+      'edit-task': 'update-task',
+      'modify-task': 'update-task',
+      'reschedule-task': 'update-task',
+      'reschedule': 'update-task',
+      'append-note': 'append-note',
+      'append': 'append-note',
+      'add-line': 'append-note',
+      'add-note': 'append-note',
+      'edit-note': 'edit-note',
+      'update-note': 'edit-note',
+      'replace-in-note': 'edit-note',
+      'edit': 'edit-note',
       'quick-capture': 'capture',
       'capture-note': 'capture',
       'create-note': 'capture',
@@ -1782,10 +1927,13 @@ class HermesDashboardPlugin extends Plugin {
     if (alt) return alt;
     const has = (k) => params && params[k] !== undefined && params[k] !== null && String(params[k]).trim() !== '';
     const anyOf = (keys) => keys.some(has);
+    if (has('find') || has('replace')) return 'edit-note';
+    if (has('heading') || has('section')) return 'append-note';
     if (has('path')) return 'open-note';
     if (has('query') || has('q')) return 'find-note';
     if (anyOf(['agenda', 'decisions', 'actions', 'time', 'start', 'starttime', 'at', 'title', 'subject'])) return 'meeting';
     if (has('type')) return 'capture';
+    if (anyOf(['new-text', 'newtext', 'status', 'line'])) return 'update-task';
     if (anyOf(['priority', 'recurrence'])) return 'add-task';
     if (has('date') && !anyOf(['text', 'task', 'todo', 'body', 'content'])) return 'new-daily';
     if (anyOf(['text', 'task', 'todo', 'body', 'content'])) return 'add-task';
@@ -1878,15 +2026,49 @@ class HermesDashboardPlugin extends Plugin {
           result = this.fileResult(found);
           break;
         }
+        case 'toggle-task': {
+          if (!text && !params.line && !params.path && !params.date) {
+            need('text=<task text> (&path=… or &date=YYYY-MM-DD optional)');
+          }
+          const hit = await this.toggleTaskTarget(params);
+          new Notice('Task toggled ✓');
+          this.refreshViews(300);
+          result = this.fileResult(hit.file, { task: cleanTaskText(hit.line), line: hit.index + 1 });
+          break;
+        }
+        case 'update-task': {
+          if (!params.path && !params.date && !text && !params.line) {
+            need('text=<task text> plus one of new-text=, status=, due=, priority=…');
+          }
+          const hit = await this.updateTaskTarget(params);
+          new Notice('Task updated ✓');
+          this.refreshViews(300);
+          result = this.fileResult(hit.file, { task: cleanTaskText(hit.line), line: hit.index + 1 });
+          break;
+        }
+        case 'append-note': {
+          const file = await this.appendToNote(params);
+          new Notice(`Appended to ${file.basename} ✓`);
+          this.refreshViews(300);
+          result = this.fileResult(file);
+          break;
+        }
+        case 'edit-note': {
+          const { file, count } = await this.editNoteText(params);
+          new Notice(`Edited ${file.basename} ✓`);
+          this.refreshViews(300);
+          result = this.fileResult(file, { replaced: count });
+          break;
+        }
         default:
           throw Object.assign(
-            new Error(`Unknown action "${rawAction}". Use: open-dashboard, add-task, capture, meeting, new-daily, open-note, find-note`),
+            new Error(`Unknown action "${rawAction}". Use: open-dashboard, add-task, toggle-task, update-task, capture, meeting, new-daily, open-note, find-note, append-note, edit-note`),
             { code: 'unknown_action' },
           );
       }
       await this.finishCallback(callbacks.success, { action, ...result });
     } catch (err) {
-      const known = err && (err.code === 'unknown_action' || err.code === 'note_not_found' || err.code === 'missing_parameter');
+      const known = err && ['unknown_action', 'note_not_found', 'missing_parameter', 'task_not_found', 'ambiguous_match', 'match_not_found', 'no_change'].includes(err.code);
       const message = known ? err.message : `action failed: ${err && err.message ? err.message : err}`;
       if (!(err && err.silent)) {
         console.error('[agentic-dashboard] action failed:', action, err);
@@ -2051,10 +2233,59 @@ class HermesDashboardPlugin extends Plugin {
     return f;
   }
 
+  /** Flip one task line inside a lines array (in place).
+   *  Returns { changed, index } where index points at the toggled line after
+   *  mutation (a completed recurring task inserts its next occurrence above). */
+  flipTaskLines(lines, idx, today) {
+    const m = TASK_LINE_RE.exec(lines[idx] || '');
+    if (!m) return { changed: false, index: idx };
+    const indent = m[1];
+    const status = m[2];
+    const body = m[3];
+
+    if (status === ' ') {
+      // open -> done (+ cancelled stamps removed if re-opening happened before)
+      let doneLine = `${indent}${lines[idx].replace('[ ]', '[x]')}`;
+      if (!DONE_DATE_RE.test(doneLine)) doneLine += ` ✅ ${today}`;
+      lines[idx] = doneLine;
+      let at = idx;
+
+      // recurring task: create the next occurrence above the completed one
+      const rec = parseRecurrence(body);
+      if (rec) {
+        const ref = dueDateOf(body) || scheduledDateOf(body) || startDateOf(body);
+        if (ref) {
+          const next = computeNextRecurrence(rec, rec.whenDone ? today : ref);
+          if (next) {
+            const delta = Math.round((new Date(`${next}T00:00:00`) - new Date(`${ref}T00:00:00`)) / 86400000);
+            let nb = body;
+            if (startDateOf(nb)) nb = nb.replace(/🛫\s*\d{4}-\d{2}-\d{2}/, `🛫 ${shiftDate(startDateOf(nb), delta)}`);
+            if (scheduledDateOf(nb)) nb = nb.replace(/⏳\s*\d{4}-\d{2}-\d{2}/, `⏳ ${shiftDate(scheduledDateOf(nb), delta)}`);
+            nb = nb.replace(/📅\s*\d{4}-\d{2}-\d{2}/, `📅 ${next}`);
+            lines.splice(idx, 0, `${indent}- [ ] ${nb}`);
+            at = idx + 1;
+          }
+        }
+      }
+      return { changed: true, index: at };
+    }
+
+    // done/cancelled -> open: drop the completion/cancellation stamp
+    const reopened = lines[idx]
+      .replace(/\[[xX]\]/, '[ ]')
+      .replace(/\[-\]/, '[ ]')
+      .replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, '')
+      .replace(/\s*❌\s*\d{4}-\d{2}-\d{2}/, '');
+    if (reopened === lines[idx]) return { changed: false, index: idx };
+    lines[idx] = reopened;
+    return { changed: true, index: idx };
+  }
+
   async toggleTaskLine(path, rawLine) {
     const f = this.app.vault.getAbstractFileByPath(path);
-    if (!(f instanceof TFile)) return;
+    if (!(f instanceof TFile)) return false;
     const today = ymd(new Date());
+    let changed = false;
     await this.app.vault.process(f, (text) => {
       const lines = text.split('\n');
       let idx = lines.indexOf(rawLine);
@@ -2063,45 +2294,309 @@ class HermesDashboardPlugin extends Plugin {
         idx = lines.findIndex((l) => l.trim() === target);
       }
       if (idx === -1) return text;
+      changed = this.flipTaskLines(lines, idx, today).changed;
+      return changed ? lines.join('\n') : text;
+    });
+    if (changed) new Notice('Task updated ✓');
+    return changed;
+  }
+
+  /** Resolve one task line from path/date plus a text, raw-line or index selector. */
+  async findTaskTarget(params) {
+    const p = params || {};
+    const rawLine = this.pickParam(p, ['line', 'rawline', 'raw']);
+    const needle = this.pickParam(p, ['text', 'task', 'todo', 'match', 'query', 'q']);
+    const idxRaw = this.pickParam(p, ['index', 'i']);
+
+    let files;
+    const path = this.pickParam(p, ['path', 'file', 'note']);
+    if (path) {
+      const f = this.app.vault.getAbstractFileByPath(path);
+      if (!(f instanceof TFile) || f.extension !== 'md') {
+        throw Object.assign(new Error(`No note at "${path}"`), { code: 'note_not_found' });
+      }
+      files = [f];
+    } else {
+      const dateOpt = this.pickParam(p, ['date', 'day', 'when']);
+      files = dateOpt
+        ? [await this.ensureDailyNote(this.normalizeDate(dateOpt))]
+        : this.app.vault.getMarkdownFiles();
+    }
+
+    const hits = [];
+    for (const f of files) {
+      let text;
+      try { text = await this.app.vault.cachedRead(f); } catch (e) { continue; }
+      const lines = text.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const m = TASK_LINE_RE.exec(lines[i]);
+        if (!m) continue;
+        if (rawLine && lines[i].trim() !== rawLine.trim()) continue;
+        if (needle && !m[3].toLowerCase().includes(needle.toLowerCase())) continue;
+        hits.push({ file: f, index: i, line: lines[i] });
+      }
+    }
+    if (!hits.length) {
+      const where = path ? ` in ${path}` : '';
+      throw Object.assign(
+        new Error(`No task matches${needle ? ` "${needle}"` : ''}${where}`),
+        { code: 'task_not_found' },
+      );
+    }
+    if (hits.length > 1 && !idxRaw) {
+      const sample = hits.slice(0, 5).map((h) => `${h.file.path}:${h.index + 1}`).join(', ');
+      throw Object.assign(
+        new Error(`Task match is ambiguous (${hits.length} hits): ${sample} — pass path=, date= or index=`),
+        { code: 'ambiguous_match' },
+      );
+    }
+    const wanted = Math.max(0, parseInt(idxRaw, 10) || 0);
+    return hits[Math.min(wanted, hits.length - 1)];
+  }
+
+  /** Normalise a date-ish action parameter: null = untouched, '' = clear. */
+  taskDateParam(v) {
+    if (v === undefined || v === null) return null;
+    const s = String(v).trim();
+    if (!s) return null;
+    if (/^(none|clear|remove|off|-)$/i.test(s)) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : ymd(d);
+  }
+
+  async toggleTaskTarget(params) {
+    const hit = await this.findTaskTarget(params);
+    const today = ymd(new Date());
+    let changed = false;
+    let newLine = hit.line;
+    await this.app.vault.process(hit.file, (text) => {
+      const lines = text.split('\n');
+      const idx = (lines[hit.index] && lines[hit.index].trim() === hit.line.trim())
+        ? hit.index
+        : lines.findIndex((l) => l.trim() === hit.line.trim());
+      if (idx === -1) return text;
+      const res = this.flipTaskLines(lines, idx, today);
+      changed = res.changed;
+      newLine = lines[res.index] || newLine;
+      return changed ? lines.join('\n') : text;
+    });
+    if (!changed) {
+      throw Object.assign(new Error('Task line changed before it could be toggled — retry'), { code: 'no_change' });
+    }
+    return { file: hit.file, index: hit.index, line: newLine };
+  }
+
+  async updateTaskTarget(params) {
+    const p = params || {};
+    const hit = await this.findTaskTarget(p);
+    const today = ymd(new Date());
+    const has = (k) => p[k] !== undefined && p[k] !== null && String(p[k]).trim() !== '';
+    const statusRaw = String(p.status || '').trim().toLowerCase();
+    let changed = false;
+    let newLine = hit.line;
+
+    await this.app.vault.process(hit.file, (text) => {
+      const lines = text.split('\n');
+      const idx = (lines[hit.index] && lines[hit.index].trim() === hit.line.trim())
+        ? hit.index
+        : lines.findIndex((l) => l.trim() === hit.line.trim());
+      if (idx === -1) return text;
       const m = TASK_LINE_RE.exec(lines[idx]);
       if (!m) return text;
-      const indent = m[1];
-      const status = m[2];
-      const body = m[3];
+      const parts = splitTaskBody(m[3]);
+      let status = m[2];
 
-      if (status === ' ') {
-        // open -> done (+ cancelled stamps removed if re-opening happened before)
-        let doneLine = `${indent}${lines[idx].replace('[ ]', '[x]')}`;
-        if (!DONE_DATE_RE.test(doneLine)) doneLine += ` ✅ ${today}`;
-        lines[idx] = doneLine;
+      const newText = this.pickParam(p, ['new-text', 'newtext', 'rename']);
+      if (newText) parts.text = newText.replace(/\s+/g, ' ').trim();
+      if (has('append')) parts.text = `${parts.text} ${String(p.append).trim()}`.trim();
 
-        // recurring task: create the next occurrence above the completed one
-        const rec = parseRecurrence(body);
-        if (rec) {
-          const ref = dueDateOf(body) || scheduledDateOf(body) || startDateOf(body);
-          if (ref) {
-            const next = computeNextRecurrence(rec, rec.whenDone ? today : ref);
-            if (next) {
-              const delta = Math.round((new Date(`${next}T00:00:00`) - new Date(`${ref}T00:00:00`)) / 86400000);
-              let nb = body;
-              if (startDateOf(nb)) nb = nb.replace(/🛫\s*\d{4}-\d{2}-\d{2}/, `🛫 ${shiftDate(startDateOf(nb), delta)}`);
-              if (scheduledDateOf(nb)) nb = nb.replace(/⏳\s*\d{4}-\d{2}-\d{2}/, `⏳ ${shiftDate(scheduledDateOf(nb), delta)}`);
-              nb = nb.replace(/📅\s*\d{4}-\d{2}-\d{2}/, `📅 ${next}`);
-              lines.splice(idx, 0, `${indent}- [ ] ${nb}`);
-            }
-          }
-        }
-      } else {
-        // done/cancelled -> open: drop the completion/cancellation stamp
-        lines[idx] = lines[idx]
-          .replace(/\[[xX]\]/, '[ ]')
-          .replace(/\[-\]/, '[ ]')
-          .replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, '')
-          .replace(/\s*❌\s*\d{4}-\d{2}-\d{2}/, '');
+      if (has('priority')) {
+        const prio = String(p.priority).trim().toLowerCase();
+        parts.priority = (prio === 'high' || prio === 'medium' || prio === 'low') ? prio : null;
       }
+      if (has('recurrence')) {
+        const rule = String(p.recurrence).trim();
+        parts.recurrence = /^(none|clear|remove|off|-)$/i.test(rule) ? '' : rule.replace(/\s+/g, ' ');
+      }
+      for (const key of ['due', 'scheduled', 'start', 'created']) {
+        const v = this.taskDateParam(p[key]);
+        if (v !== null) parts[key] = v;
+      }
+
+      if (statusRaw) {
+        if (/^(done|complete|completed|x|check|checked)$/.test(statusRaw)) {
+          status = 'x';
+          if (!parts.done) parts.done = today;
+          parts.cancelled = '';
+        } else if (/^(cancel|cancelled|canceled|-)$/.test(statusRaw)) {
+          status = '-';
+          if (!parts.cancelled) parts.cancelled = today;
+          parts.done = '';
+        } else if (/^(open|todo|undone|uncheck|reopen)$/.test(statusRaw)) {
+          status = ' ';
+          parts.done = '';
+          parts.cancelled = '';
+        }
+      }
+
+      newLine = buildTaskLine(m[1], status, parts);
+      if (newLine === lines[idx]) return text;
+      lines[idx] = newLine;
+      changed = true;
       return lines.join('\n');
     });
-    new Notice('Task updated ✓');
+
+    if (!changed) {
+      throw Object.assign(
+        new Error('Nothing to update — pass new-text, status, due, scheduled, start, priority or recurrence'),
+        { code: 'no_change' },
+      );
+    }
+    return { file: hit.file, index: hit.index, line: newLine };
+  }
+
+  /** Resolve a target note from path= (exact) or date= (daily note). */
+  async noteForParams(params) {
+    const p = params || {};
+    const path = this.pickParam(p, ['path', 'file', 'note']);
+    if (path) {
+      const f = this.app.vault.getAbstractFileByPath(path);
+      if (!(f instanceof TFile) || f.extension !== 'md') {
+        throw Object.assign(new Error(`No note at "${path}"`), { code: 'note_not_found' });
+      }
+      return f;
+    }
+    const dateOpt = this.pickParam(p, ['date', 'day', 'when']);
+    if (dateOpt) return this.ensureDailyNote(this.normalizeDate(dateOpt));
+    throw Object.assign(
+      new Error('path=<vault path> or date=YYYY-MM-DD is required'),
+      { code: 'missing_parameter' },
+    );
+  }
+
+  /** Append text to a note (end, top, or end of a heading's section). */
+  async appendToNote(params) {
+    const p = params || {};
+    const block = this.pickParam(p, ['text', 'content', 'body', 'line']);
+    if (!block) throw Object.assign(new Error('text=<text to add> is required'), { code: 'missing_parameter' });
+    const file = await this.noteForParams(p);
+    const heading = this.pickParam(p, ['heading', 'section']);
+    const position = String(p.position || (p.top ? 'top' : 'end')).trim().toLowerCase();
+    let changed = false;
+
+    await this.app.vault.process(file, (raw) => {
+      const eol = raw.includes('\r\n') ? '\r\n' : '\n';
+      const lines = raw.split(/\r?\n/);
+      const blockLines = block.split(/\r?\n/);
+      const levelOf = (l) => {
+        const m = /^(#{1,6})\s+/.exec(l);
+        return m ? m[1].length : 0;
+      };
+
+      if (heading) {
+        const wanted = heading.replace(/^#+\s*/, '').trim().toLowerCase();
+        const start = lines.findIndex((l) => levelOf(l) && l.replace(/^#+\s*/, '').trim().toLowerCase() === wanted);
+        if (start === -1) {
+          throw Object.assign(new Error(`Heading "${heading}" not found in ${file.path}`), { code: 'match_not_found' });
+        }
+        const level = levelOf(lines[start]);
+        let end = lines.length;
+        for (let i = start + 1; i < lines.length; i++) {
+          const lv = levelOf(lines[i]);
+          if (lv && lv <= level) { end = i; break; }
+        }
+        let at = end;
+        while (at > start + 1 && lines[at - 1].trim() === '') at--;
+        lines.splice(at, 0, ...blockLines);
+        if (at + blockLines.length < lines.length && levelOf(lines[at + blockLines.length])) {
+          lines.splice(at + blockLines.length, 0, '');
+        }
+      } else if (position === 'top' || position === 'start') {
+        const at = frontmatterEnd(lines);
+        const head = lines.slice(0, at);
+        const tail = lines.slice(at);
+        const out = head.slice();
+        if (head.length) out.push('');
+        out.push(...blockLines);
+        if (tail.length && tail[0].trim() !== '') out.push('');
+        out.push(...tail);
+        lines.length = 0;
+        lines.push(...out);
+      } else {
+        let at = lines.length;
+        while (at > 0 && lines[at - 1].trim() === '') at--;
+        lines.splice(at, 0, ...blockLines);
+        if (lines[lines.length - 1].trim() !== '') lines.push('');
+      }
+
+      const out = lines.join(eol);
+      changed = out !== raw;
+      return out;
+    });
+
+    if (!changed) {
+      throw Object.assign(new Error('Note already contains that text at the target position'), { code: 'no_change' });
+    }
+    return file;
+  }
+
+  /** Replace text in a note; unique match unless all=true or occurrence=N. */
+  async editNoteText(params) {
+    const p = params || {};
+    const find = this.pickParam(p, ['find', 'match', 'old', 'from']);
+    if (!find) throw Object.assign(new Error('find=<text to replace> is required'), { code: 'missing_parameter' });
+    const replace = p.replace !== undefined ? String(p.replace)
+      : (p.new !== undefined ? String(p.new) : (p.to !== undefined ? String(p.to) : ''));
+    const file = await this.noteForParams(p);
+    const all = /^(1|true|yes|all)$/i.test(String(p.all || ''));
+    const occurrence = Math.max(1, parseInt(this.pickParam(p, ['occurrence', 'nth']), 10) || 1);
+    const allowFrontmatter = /^(1|true|yes)$/i.test(String(p.frontmatter || ''));
+    let count = 0;
+
+    await this.app.vault.process(file, (raw) => {
+      const re = p.regex
+        ? new RegExp(find, 'g')
+        : new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      const matches = [...raw.matchAll(re)];
+      if (!matches.length) {
+        throw Object.assign(new Error(`No match for "${find}" in ${file.path}`), { code: 'match_not_found' });
+      }
+      if (!all && matches.length > 1 && !this.pickParam(p, ['occurrence', 'nth'])) {
+        const where = matches.slice(0, 5)
+          .map((m) => raw.slice(0, m.index).split('\n').length)
+          .join(', ');
+        throw Object.assign(
+          new Error(`"${find}" matches ${matches.length} times (lines ${where}) — pass occurrence= or all=true`),
+          { code: 'ambiguous_match' },
+        );
+      }
+      const chosen = all ? matches : [matches[Math.min(occurrence, matches.length) - 1]];
+      if (!allowFrontmatter) {
+        const fmEnd = frontmatterEnd(raw.split('\n'));
+        if (fmEnd) {
+          const fmChars = raw.split('\n').slice(0, fmEnd).join('\n').length + 1;
+          if (chosen.some((m) => m.index < fmChars)) {
+            throw Object.assign(
+              new Error('Refusing to edit YAML frontmatter — pass frontmatter=true to allow'),
+              { code: 'action_failed' },
+            );
+          }
+        }
+      }
+      const selected = new Set(chosen.map((m) => m.index));
+      let i = -1;
+      const out = raw.replace(re, (match) => {
+        i++;
+        if (!selected.has(matches[i].index)) return match;
+        count++;
+        return replace;
+      });
+      if (!count) throw Object.assign(new Error('Nothing replaced'), { code: 'no_change' });
+      return out;
+    });
+
+    return { file, count };
   }
 
   openMeetingModal() {
