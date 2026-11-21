@@ -14,6 +14,7 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 - ＋ **Two ways to add tasks** — the `Task ⚡` chip is quick capture: type one line, hit Enter, it lands in today's daily note; the **＋ Task** button opens the proper form (name, date, priority, repeat) for scheduling ahead
 - **Tasks today** — open tasks from today's daily note plus every task across the vault that is due today or overdue (📅 / ⏳ / 🛫 emoji dates), click to toggle done
 - **Task features from the Tasks ecosystem** — the ＋ Task button opens a rich form (name, date, priority, repeat) so tasks for future days can be scheduled today; completing a task stamps it with a done date ✅; adding one stamps a created date ➕; recurring tasks (🔁 every week, every 3 days, every weekday, `when done`, …) generate their next occurrence automatically on completion; priorities (⏫ 🔼 🔽) are preserved and sort overdue lists; cancelled tasks (`- [-]`) are excluded; `*` and numbered checkboxes are supported
+- **Agent task & note editing** — `toggle-task`, `update-task`, `append-note` and `edit-note` actions complete, reschedule or rewrite an existing task and edit any existing note, with unique-match guards, frontmatter protection and real `x-error` codes
 - **Calendar** — Monday-start month view, dots on days with a daily note, click any day to open/create that daily note
 - **Meetings today** — notes in the meetings folder whose frontmatter `date` is today; the **Meeting** button opens a full form (name, date, time, agenda, notes, decisions, action items) that builds the complete meeting note
 - **At a glance reveals** — every stat tile is clickable: open and completed tasks, inbox notes, today's meetings and recently modified files each open a clickable list; the notes stat opens the file explorer
@@ -89,6 +90,10 @@ Requires the Obsidian CLI to be enabled (**Settings → General → Command line
 | `obsidian agentic-dashboard:new-daily date=2026-11-14` | Creates (if missing) and opens that daily note |
 | `obsidian agentic-dashboard:open-note path="folder/note.md"` | Opens that exact vault path |
 | `obsidian agentic-dashboard:find-note query=dashboard` | Best-match search over note names, opens the winner |
+| `obsidian agentic-dashboard:toggle-task text="Call plumber"` | Ticks/unticks the matching task (add `path=` or `date=` to narrow it, `index=` when duplicates match) |
+| `obsidian agentic-dashboard:update-task text="Call plumber" due=2026-11-25 priority=high` | Edits an existing task: `new-text=`, `status=open\|done\|cancelled`, `due=` / `scheduled=` / `start=` (`none` clears), `priority=`, `recurrence=`, `append=` |
+| `obsidian agentic-dashboard:append-note path="Notes/Ideas.md" text="- New idea"` | Appends to an existing note; `heading="Tasks"` targets that section, `position=top` inserts after frontmatter |
+| `obsidian agentic-dashboard:edit-note path="Notes/Ideas.md" find="old" replace="new"` | Replaces text in a note; unique match by default, `all=true` or `occurrence=2` for more, `regex=true` for patterns |
 
 Add `vault="<name>"` before the command to target a specific vault. Example:
 
@@ -109,6 +114,10 @@ The plugin registers `obsidian://agentic-dashboard?op=...` — useful for links 
 | Daily note | `...op=new-daily` (`&date=` optional) | Creates if missing and opens it |
 | Open a note | `...op=open-note&path=Journal/2026-11-13.md` | Opens that exact vault path |
 | Find a note | `...op=find-note&query=dashboard` | Best-match search, opens the winner |
+| Toggle a task | `...op=toggle-task&text=Call plumber` | Ticks/unticks the task (`path=` / `date=` / `index=` to narrow) |
+| Update a task | `...op=update-task&text=Call plumber&due=2026-11-25&priority=high` | Changes text, status, dates, priority or repeat of an existing task |
+| Append to a note | `...op=append-note&path=Notes/Ideas.md&text=- New idea` | Appends at the end, after `heading=`, or at the top (`position=top`) |
+| Edit a note | `...op=edit-note&path=Notes/Ideas.md&find=old&replace=new` | Unique match by default (`all=true`, `occurrence=N`, `regex=true`) |
 | Open dashboard | `...op=open-dashboard` | Focuses the dashboard |
 
 Base: `obsidian://agentic-dashboard?op=<action>&...`. Spaces in parameters should be URL-encoded (`%20`). URI actions confirm with an in-app notice.
@@ -127,7 +136,9 @@ obsidian://agentic-dashboard?op=meeting&title=Design%20review&time=14%3A30
   &x-error=shortcuts%3A%2F%2Frun-shortcut%3Fname%3DOnFailure
 ```
 
-Success replies carry `action`, `name`, `file`, `path`, `url` (an `obsidian://open` link), plus `title` for meetings, `date` for tasks and daily notes, `type` for captures. Error replies carry `action`, `errorCode` and `errorMessage`; `errorCode` is `unknown_action`, `missing_parameter`, `note_not_found` or `action_failed`. Your callback's own existing query string is preserved.
+Success replies carry `action`, `name`, `file`, `path`, `url` (an `obsidian://open` link), plus `title` for meetings, `date` for tasks and daily notes, `type` for captures, and `task` / `line` for task edits. Error replies carry `action`, `errorCode` and `errorMessage`; `errorCode` is `unknown_action`, `missing_parameter`, `note_not_found`, `task_not_found`, `ambiguous_match`, `match_not_found`, `no_change` or `action_failed`. Your callback's own existing query string is preserved.
+
+Editing is deliberately conservative: `toggle-task` and `update-task` refuse an ambiguous text match unless you pass `path=`/`date=`/`index=`; `edit-note` requires a unique match unless `all=true` or `occurrence=N`, replaces literally (no `$1` backreferences) and refuses YAML frontmatter unless `frontmatter=true`. `update-task` can clear a date or priority with `due=none` / `priority=none`, and a completed recurring task still generates its next occurrence.
 
 ## Compatibility
 
