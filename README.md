@@ -14,7 +14,6 @@ A crystal-glass daily dashboard for [Obsidian](https://obsidian.md): a video her
 - ＋ **Two ways to add tasks** — the `Task ⚡` chip is quick capture: type one line, hit Enter, it lands in today's daily note; the **＋ Task** button opens the proper form (name, date, priority, repeat) for scheduling ahead
 - **Tasks today** — open tasks from today's daily note plus every task across the vault that is due today or overdue (📅 / ⏳ / 🛫 emoji dates), click to toggle done
 - **Task features from the Tasks ecosystem** — the ＋ Task button opens a rich form (name, date, priority, repeat) so tasks for future days can be scheduled today; completing a task stamps it with a done date ✅; adding one stamps a created date ➕; recurring tasks (🔁 every week, every 3 days, every weekday, `when done`, …) generate their next occurrence automatically on completion; priorities (⏫ 🔼 🔽) are preserved and sort overdue lists; cancelled tasks (`- [-]`) are excluded; `*` and numbered checkboxes are supported
-- **Agent editing, per entity** — `toggle-task` and `update-task` for tasks; `update-meeting` for meetings; `update-thought`, `update-idea`, `update-reflection`, `update-to-watch`, `update-book` and `update-article` for Inbox captures. Each action edits the note in that entity's own format (frontmatter, sections, action-item tasks) instead of rewriting free text, with ambiguous-match guards and real `x-error` codes
 - **Calendar** — Monday-start month view, dots on days with a daily note, click any day to open/create that daily note
 - **Meetings today** — notes in the meetings folder whose frontmatter `date` is today; the **Meeting** button opens a full form (name, date, time, agenda, notes, decisions, action items) that builds the complete meeting note
 - **At a glance reveals** — every stat tile is clickable: open and completed tasks, inbox notes, today's meetings and recently modified files each open a clickable list; the notes stat opens the file explorer
@@ -90,10 +89,7 @@ Requires the Obsidian CLI to be enabled (**Settings → General → Command line
 | `obsidian agentic-dashboard:new-daily date=2026-11-14` | Creates (if missing) and opens that daily note |
 | `obsidian agentic-dashboard:open-note path="folder/note.md"` | Opens that exact vault path |
 | `obsidian agentic-dashboard:find-note query=dashboard` | Best-match search over note names, opens the winner |
-| `obsidian agentic-dashboard:toggle-task text="Call plumber"` | Ticks/unticks the matching task (add `path=` or `date=` to narrow it, `index=` when duplicates match) |
-| `obsidian agentic-dashboard:update-task text="Call plumber" due=2026-11-25 priority=high` | Edits an existing task: `new-text=`, `status=open\|done\|cancelled`, `due=` / `scheduled=` / `start=` (`none` clears), `priority=`, `recurrence=`, `append=` |
-| `obsidian agentic-dashboard:update-meeting query="Design review" time=11:00 agenda="Point"` | Edits a meeting in its own format: `new-title=`, `date=`, `time=`, `agenda=`, `notes=`, `decisions=`, `actions=` (`mode=replace` rewrites a section) |
-| `obsidian agentic-dashboard:update-book query="Atomic Habits" status=finished` | Edits a capture in its own format — `update-thought`, `-idea`, `-reflection`, `-to-watch`, `-book`, `-article`; `text=`, `date=`, `time=`, `source=`, `author=`, `status=`, `context=`, `takeaway=`, `body=` (`none` clears a field) |
+| `obsidian agentic-dashboard:read-note path="Journal/2026-11-13.md"` | Returns the note's content as JSON (read-only). `query=` for a name match (ambiguous matches are refused), `offset=` / `max=` to page through long notes using `nextOffset` from the reply. Errors come back as `error: ...` |
 
 Add `vault="<name>"` before the command to target a specific vault. Example:
 
@@ -103,7 +99,7 @@ obsidian vault="Ai diary" agentic-dashboard:add-task text="Water the plants"
 
 ### obsidian:// URI (desktop & mobile)
 
-The plugin registers `obsidian://agentic-dashboard?op=...` — useful for links inside notes, iPhone/iPad Shortcuts, and environments without a terminal:
+The plugin registers `obsidian://agentic-dashboard?op=...` — useful for links inside notes, iOS Shortcuts, and environments without a terminal:
 
 | Action | URL | What it does |
 |---|---|---|
@@ -114,10 +110,7 @@ The plugin registers `obsidian://agentic-dashboard?op=...` — useful for links 
 | Daily note | `...op=new-daily` (`&date=` optional) | Creates if missing and opens it |
 | Open a note | `...op=open-note&path=Journal/2026-11-13.md` | Opens that exact vault path |
 | Find a note | `...op=find-note&query=dashboard` | Best-match search, opens the winner |
-| Toggle a task | `...op=toggle-task&text=Call plumber` | Ticks/unticks the task (`path=` / `date=` / `index=` to narrow) |
-| Update a task | `...op=update-task&text=Call plumber&due=2026-11-25&priority=high` | Changes text, status, dates, priority or repeat of an existing task |
-| Update a meeting | `...op=update-meeting&query=Design review&time=11:00` | Edits date, time, title, agenda, notes, decisions or action items of an existing meeting |
-| Update a capture | `...op=update-book&query=Atomic Habits&status=finished` | Typed ops `update-thought`, `update-idea`, `update-reflection`, `update-to-watch`, `update-book`, `update-article` (or `update-capture&type=book`) edit the capture's own fields and sections |
+| Read a note | `...op=read-note&path=Journal/2026-11-13.md&x-success=...` | Sends the note's text back in the `x-success` URL as `content` (read-only, default 6000 chars per call). `offset=` / `max=` to page — `next` comes back when `truncated=true`. `to=clipboard` copies it instead. Needs `x-success`, otherwise the result only shows as a notice |
 | Open dashboard | `...op=open-dashboard` | Focuses the dashboard |
 
 Base: `obsidian://agentic-dashboard?op=<action>&...`. Spaces in parameters should be URL-encoded (`%20`). URI actions confirm with an in-app notice.
@@ -136,43 +129,11 @@ obsidian://agentic-dashboard?op=meeting&title=Design%20review&time=14%3A30
   &x-error=shortcuts%3A%2F%2Frun-shortcut%3Fname%3DOnFailure
 ```
 
-Success replies carry `action`, `name`, `file`, `path`, `url` (an `obsidian://open` link), plus `title` for meetings, `date` for tasks and daily notes, `type` for captures, and `task` / `line` for task edits. Error replies carry `action`, `errorCode` and `errorMessage`; `errorCode` is `unknown_action`, `missing_parameter`, `note_not_found`, `task_not_found`, `ambiguous_match`, `match_not_found`, `no_change`, `type_mismatch` or `action_failed`. Your callback's own existing query string is preserved.
-
-Editing is deliberately conservative: `toggle-task` and `update-task` refuse an ambiguous text match unless you pass `path=`/`date=`/`index=`; `update-meeting` only looks in the meetings folder and `update-<type>` only in the Inbox with a matching `tag:`, and both require a `query=` or `path=` and refuse an ambiguous match. Edits stay inside the entity's own format — frontmatter fields, `## Agenda` / `## Notes` / `## Decisions` / `## Action items` sections and the capture's `## Context` / `## Takeaway` / `## Notes` sections — and `mode=replace` rewrites a section instead of appending. Renaming a note keeps its links intact. `update-task` can clear a date or priority with `due=none` / `priority=none`, and a completed recurring task still generates its next occurrence.
-
-### iPhone & Apple Shortcuts (how it actually runs)
-
-Every action above works on iPhone and iPad — same links, same plugin, no separate mobile build. The part worth knowing is **how iOS runs a URI**:
-
-1. A Shortcut (or a link, or another app) opens `obsidian://agentic-dashboard?op=...`.
-2. iOS launches Obsidian, or switches to it if it is already running. The action runs **inside Obsidian**, never in the background — a Shortcut cannot edit the vault silently.
-3. When the action finishes, Obsidian opens your `x-success` / `x-error` URL. That is how control comes back to the Shortcut (or to whatever app made the call). Without a callback URL you simply stay in Obsidian, with the result shown as a notice.
-
-A minimal "quick capture" Shortcut is three steps:
-
-| Step | Setting |
-|---|---|
-| Ask for Input | Text |
-| URL | `obsidian://agentic-dashboard?op=capture&type=thought&text=[Provided Input]` |
-| Open URLs | — |
-
-Add `&x-success=shortcuts%3A%2F%2Frun-shortcut%3Fname%3DAfterCapture` to return to Shortcuts when it is done.
-
-Before blaming the URL, check these three things on the phone:
-
-- **Same plugin version.** Open *Settings → Community plugins → Agentic Dashboard*. If the phone shows an older version than your desktop, update or re-copy the plugin folder — plugin folders are not always included in vault sync.
-- **Plugin enabled** in that vault on that device.
-- **Parameters URL-encoded.** Spaces must be `%20`, `&` inside a value must be `%26`, and a colon in a time is `%3A` (`time=14%3A30`).
-
-Callbacks like `shortcuts://run-shortcut?name=...` work from Obsidian on iOS the same way they do on desktop; `x-success`/`x-error` also accept `http://127.0.0.1:port/...` on desktop for local test listeners.
+Success replies carry `action`, `name`, `file`, `path`, `url` (an `obsidian://open` link), plus `title` for meetings, `date` for tasks and daily notes, `type` for captures. Error replies carry `action`, `errorCode` and `errorMessage`; `errorCode` is `unknown_action`, `missing_parameter`, `note_not_found` or `action_failed`. Your callback's own existing query string is preserved.
 
 ## Compatibility
 
 Requires Obsidian **1.4.0+**. Works on desktop and mobile. Themes (like [Hermes Crystal](https://github.com/faizulahasun-cloud/hermes-crystal)) style it automatically; without a theme it uses its own built-in crystal-glass dark look.
-
-## Release policy
-
-Every command and every option is tested on the installed build before a release — CLI and URI, success and error paths. Results are shared with the maintainer and discussed until approved; release artifacts are prepared only after that approval, and publishing to GitHub requires a separate, explicit go-ahead.
 
 ## Companion theme: Hermes Crystal
 
