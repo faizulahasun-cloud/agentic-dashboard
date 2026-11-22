@@ -166,6 +166,8 @@ Before blaming the URL, check these three things on the phone:
 
 Callbacks like `shortcuts://run-shortcut?name=...` work from Obsidian on iOS the same way they do on desktop; `x-success`/`x-error` also accept `http://127.0.0.1:port/...` on desktop for local test listeners.
 
+> **iPhone vault mount note:** It is recommended to mount the vault folder as read-only when using shell agents on iPhone. This prevents direct file writes from agent scripts, keeping the vault safe from accidental modifications.
+
 ## Compatibility
 
 Requires Obsidian **1.4.0+**. Works on desktop and mobile. Themes (like [Hermes Crystal](https://github.com/faizulahasun-cloud/hermes-crystal)) style it automatically; without a theme it uses its own built-in crystal-glass dark look.
