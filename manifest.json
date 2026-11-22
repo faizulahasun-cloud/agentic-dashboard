@@ -1,7 +1,7 @@
 {
   "id": "agentic-dashboard",
   "name": "Agentic Dashboard",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "minAppVersion": "1.4.0",
   "description": "A crystal-glass daily dashboard: video hero, quick capture, today's tasks, calendar, stats, meetings, recents and inbox — with agent actions and iPhone Shortcuts support. No Dataview required.",
   "author": "MD Fizul Ahasun",
