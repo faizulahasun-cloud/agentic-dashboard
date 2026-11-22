@@ -1499,6 +1499,11 @@ class HermesDashboardSettingTab extends PluginSettingTab {
    ✦ Plugin
    ════════════════════════════════════════════════════════════════ */
 
+// read-note: chars returned per call (URI replies travel inside a URL, so they stay smaller)
+const READ_NOTE_URI_DEFAULT = 6000;
+const READ_NOTE_CLI_DEFAULT = 50000;
+const READ_NOTE_HARD_MAX = 100000;
+
 class HermesDashboardPlugin extends Plugin {
   async onload() {
     await this.loadSettings();
@@ -1777,6 +1782,29 @@ class HermesDashboardPlugin extends Plugin {
       return `Searched for: ${q}`;
     });
 
+    reg('agentic-dashboard:read-note', "Read a note's content (read-only, chunked) as JSON", {
+      path: flag('Exact vault path, e.g. Journal/2026-11-13.md', '<path>'),
+      query: flag('Best match on note name (refuses ambiguous matches)', '<query>'),
+      offset: flag('Start position in characters (default 0)', '<n>'),
+      max: flag('Max characters to return (default 50000, cap 100000)', '<n>'),
+    }, async (f) => {
+      if (!String(f.path || '').trim() && !String(f.query || '').trim()) {
+        return 'error: path=<vault path> or query=<note name> is required';
+      }
+      const r = await this.readNoteContent(f, READ_NOTE_CLI_DEFAULT);
+      return JSON.stringify({
+        ok: true,
+        path: r.file.path,
+        name: r.file.basename,
+        length: r.length,
+        offset: r.offset,
+        returned: r.returned,
+        truncated: r.truncated,
+        nextOffset: r.nextOffset,
+        content: r.content,
+      });
+    });
+
     reg('agentic-dashboard:toggle-task', 'Toggle a task line in any note', {
       text: flag('Text contained in the task', '<text>'),
       line: flag('Exact task line', '<line>'),
@@ -1920,6 +1948,10 @@ class HermesDashboardPlugin extends Plugin {
       'today': 'new-daily',
       'open': 'open-note',
       'note-open': 'open-note',
+      'read-note': 'read-note',
+      'read': 'read-note',
+      'get-note': 'read-note',
+      'note-content': 'read-note',
       'find': 'find-note',
       'search': 'find-note',
       'dashboard': 'open-dashboard',
@@ -2045,6 +2077,30 @@ class HermesDashboardPlugin extends Plugin {
           result = this.fileResult(found);
           break;
         }
+        case 'read-note': {
+          if (!this.pickParam(params, ['path', 'file', 'query', 'q'])) {
+            need('path=Journal/2026-11-13.md or query=<note name> (&offset= &max= &to=clipboard optional)');
+          }
+          const r = await this.readNoteContent(params, READ_NOTE_URI_DEFAULT);
+          const toClipboard = String(params.to || '').toLowerCase() === 'clipboard';
+          if (toClipboard) {
+            if (!(navigator.clipboard && navigator.clipboard.writeText)) {
+              throw Object.assign(new Error('Clipboard is not available here'), { code: 'action_failed' });
+            }
+            await navigator.clipboard.writeText(r.content);
+          }
+          new Notice(`Read ${r.file.basename} (${r.returned}/${r.length} chars) ✓`);
+          result = this.fileResult(r.file, {
+            length: r.length,
+            offset: r.offset,
+            returned: r.returned,
+            truncated: r.truncated,
+            next: r.nextOffset === null ? undefined : r.nextOffset,
+            copied: toClipboard ? 'true' : undefined,
+            content: toClipboard ? undefined : r.content,
+          });
+          break;
+        }
         case 'toggle-task': {
           if (!text && !params.line && !params.path && !params.date) {
             need('text=<task text> (&path=… or &date=YYYY-MM-DD optional)');
@@ -2096,7 +2152,7 @@ class HermesDashboardPlugin extends Plugin {
         }
         default:
           throw Object.assign(
-            new Error(`Unknown action "${rawAction}". Use: open-dashboard, add-task, toggle-task, update-task, capture, meeting, update-meeting, update-capture, update-thought, update-idea, update-reflection, update-to-watch, update-book, update-article, new-daily, open-note, find-note`),
+            new Error(`Unknown action "${rawAction}". Use: open-dashboard, add-task, toggle-task, update-task, capture, meeting, update-meeting, update-capture, update-thought, update-idea, update-reflection, update-to-watch, update-book, update-article, new-daily, open-note, find-note, read-note`),
             { code: 'unknown_action' },
           );
       }
@@ -2198,6 +2254,67 @@ class HermesDashboardPlugin extends Plugin {
       ? `Opened ${win.basename} (${scored.length} matches)`
       : `Opened ${win.basename} ✓`);
     return win;
+  }
+
+  /* ---------- read-only note reading (read-note) ---------- */
+
+  /** Resolve the note to read: exact path= (".md" optional) or query= best match.
+   *  Unlike find-note it refuses an ambiguous query, like the edit actions do. */
+  resolveNoteForRead(params) {
+    const pth = this.pickParam(params, ['path', 'file']).replace(/^\/+/, '');
+    const query = this.pickParam(params, ['query', 'q']).toLowerCase().replace(/\.md$/, '');
+    if (pth) {
+      const f = this.app.vault.getAbstractFileByPath(pth) || this.app.vault.getAbstractFileByPath(`${pth}.md`);
+      if (f instanceof TFile && f.extension === 'md') return f;
+      throw Object.assign(new Error(`No note at "${pth}"`), { code: 'note_not_found' });
+    }
+    if (!query) {
+      throw Object.assign(new Error('read-note needs path= or query='), { code: 'missing_parameter' });
+    }
+    const scored = [];
+    for (const f of this.app.vault.getMarkdownFiles()) {
+      const base = f.basename.toLowerCase();
+      let score = -1;
+      if (base === query) score = 3;
+      else if (base.startsWith(query)) score = 2;
+      else if (base.includes(query)) score = 1;
+      else if (f.path.toLowerCase().includes(query)) score = 0;
+      if (score >= 0) scored.push({ f, score });
+    }
+    if (!scored.length) {
+      throw Object.assign(new Error(`No note matches "${query}"`), { code: 'note_not_found' });
+    }
+    const best = Math.max(...scored.map((s) => s.score));
+    const hits = scored.filter((s) => s.score === best).map((s) => s.f);
+    if (hits.length > 1) {
+      throw Object.assign(new Error(
+        `${hits.length} notes match "${query}": ${hits.slice(0, 5).map((f) => f.path).join(', ')}. Pass path= instead.`,
+      ), { code: 'ambiguous_match' });
+    }
+    return hits[0];
+  }
+
+  /** Read a note's text in chunks. Never writes anything. */
+  async readNoteContent(params, defaultMax) {
+    const file = this.resolveNoteForRead(params);
+    const text = await this.app.vault.read(file);
+    const offset = Math.max(0, parseInt(params.offset, 10) || 0);
+    const max = Math.min(READ_NOTE_HARD_MAX, Math.max(1, parseInt(params.max, 10) || defaultMax));
+    let end = Math.min(text.length, offset + max);
+    if (end < text.length && end > offset) {
+      const c = text.charCodeAt(end - 1);
+      if (c >= 0xd800 && c <= 0xdbff) end -= 1; // don't split an emoji at the chunk edge
+    }
+    const content = text.slice(offset, end);
+    return {
+      file,
+      length: text.length,
+      offset,
+      returned: content.length,
+      truncated: end < text.length,
+      nextOffset: end < text.length ? end : null,
+      content,
+    };
   }
 
   /* ---------- note helpers (daily / task / meeting / capture) ---------- */
