@@ -2769,7 +2769,9 @@ class HermesDashboardPlugin extends Plugin {
 
   linkFor(title, vaultPath) {
     if (this.usesMarkdownLinks()) return `[${title}](${encodeURI(vaultPath)})`;
-    return `[[${title}]]`;
+    // Use the file basename (which includes timestamp) so Obsidian can resolve wiki links
+    const basename = vaultPath.split('/').pop()?.replace(/\.md$/, '') || title;
+    return `[[${basename}]]`;
   }
 
   /** Resolve a settings folder defensively (empty/missing/badly-cased folders break writes on iOS). */
