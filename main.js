@@ -2768,9 +2768,10 @@ class HermesDashboardPlugin extends Plugin {
   }
 
   linkFor(title, vaultPath) {
-    if (this.usesMarkdownLinks()) return `[${title}](${encodeURI(vaultPath)})`;
     // Use the file basename (which includes timestamp) so Obsidian can resolve wiki links
+    // This ensures links reference notes by date (basename) not by full folder path
     const basename = vaultPath.split('/').pop()?.replace(/\.md$/, '') || title;
+    if (this.usesMarkdownLinks()) return `[${title}](${basename})`;
     return `[[${basename}]]`;
   }
 
